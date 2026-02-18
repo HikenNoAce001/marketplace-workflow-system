@@ -1,0 +1,273 @@
+"use client";
+
+/**
+ * Admin Users Page — View all users and manage their roles.
+ *
+ * PDF SPEC FOR ADMIN:
+ * 1. "Assign Buyer role to users" → role dropdown in table
+ * 2. "View all users" → paginated user table
+ * 3. "No project execution" → this page has no project actions
+ *
+ * FEATURES:
+ * - Paginated table of all users (name, email, role, joined date)
+ * - Role dropdown on each row to change SOLVER ↔ BUYER
+ * - ADMIN rows show the badge but no dropdown (can't change admin role)
+ * - Own row shows "(You)" indicator and no dropdown
+ * - 3 states: loading skeleton, error with retry, empty state
+ *
+ * DATA FLOW:
+ * useUsers(page) → GET /api/users?page=N → renders table
+ * useUpdateRole().mutate() → PATCH /api/users/{id}/role → invalidates cache → table refreshes
+ */
+
+import { useState } from "react";
+import { useUsers, useUpdateRole } from "@/hooks/use-users";
+import { useAuth } from "@/hooks/use-auth";
+import { AnimatedTableBody, AnimatedTableRow } from "@/components/animated-list";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { Users, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
+import { Role } from "@/types";
+import type { UserRole } from "@/types";
+
+/**
+ * Role badge colors — same as everywhere else in the app.
+ */
+const ROLE_BADGE_CLASS: Record<UserRole, string> = {
+  ADMIN: "bg-red-100 text-red-700 border-red-200",
+  BUYER: "bg-blue-100 text-blue-700 border-blue-200",
+  SOLVER: "bg-green-100 text-green-700 border-green-200",
+};
+
+export default function AdminUsersPage() {
+  const [page, setPage] = useState(1);
+  const { user: currentUser } = useAuth();
+  const { data, isLoading, isError, refetch } = useUsers(page);
+  const updateRole = useUpdateRole();
+
+  /**
+   * Handle role change from the dropdown.
+   * Calls PATCH /api/users/{id}/role and shows a toast on success/failure.
+   */
+  const handleRoleChange = async (userId: string, newRole: UserRole) => {
+    try {
+      await updateRole.mutateAsync({ userId, role: newRole });
+      toast.success(`Role updated to ${newRole}`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update role"
+      );
+    }
+  };
+
+  // Format ISO date string to readable format
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Page header */}
+      <div>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <Users className="h-6 w-6" />
+          User Management
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          View all users and assign roles. Promote Problem Solvers to Buyers.
+        </p>
+      </div>
+
+      {/* ============================================ */}
+      {/* STATE: Loading — show skeleton rows          */}
+      {/* ============================================ */}
+      {isLoading && (
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Joined</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {/* Render 5 skeleton rows to indicate loading */}
+              {Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* ============================================ */}
+      {/* STATE: Error — show message with retry       */}
+      {/* ============================================ */}
+      {isError && (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+          <h3 className="text-lg font-semibold">Failed to load users</h3>
+          <p className="text-muted-foreground mb-4">
+            Something went wrong. Please try again.
+          </p>
+          <Button onClick={() => refetch()} variant="outline">
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {/* ============================================ */}
+      {/* STATE: Empty — no users found                */}
+      {/* ============================================ */}
+      {data && data.data.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <Users className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold">No users found</h3>
+          <p className="text-muted-foreground">
+            Run <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">make seed</code> to create test users.
+          </p>
+        </div>
+      )}
+
+      {/* ============================================ */}
+      {/* STATE: Data loaded — show user table          */}
+      {/* ============================================ */}
+      {data && data.data.length > 0 && (
+        <>
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Joined</TableHead>
+                </TableRow>
+              </TableHeader>
+              {/* AnimatedTableBody staggers each row's entrance */}
+              <AnimatedTableBody className="[&_tr:last-child]:border-0">
+                {data.data.map((user) => {
+                  // Check if this row is the current admin user
+                  const isCurrentUser = currentUser?.id === user.id;
+                  // Admins can't have their role changed (seeded only)
+                  const isAdmin = user.role === Role.ADMIN;
+                  // Can only change role if it's not the current user and not an admin
+                  const canChangeRole = !isCurrentUser && !isAdmin;
+
+                  return (
+                    <AnimatedTableRow key={user.id}>
+                      {/* Name column — shows "(You)" for current user */}
+                      <TableCell className="font-medium">
+                        {user.name}
+                        {isCurrentUser && (
+                          <span className="ml-2 text-xs text-muted-foreground">(You)</span>
+                        )}
+                      </TableCell>
+
+                      {/* Email column */}
+                      <TableCell className="text-muted-foreground">
+                        {user.email}
+                      </TableCell>
+
+                      {/* Role column — dropdown or static badge */}
+                      <TableCell>
+                        {canChangeRole ? (
+                          // Editable dropdown for non-admin, non-self users
+                          <Select
+                            value={user.role}
+                            onValueChange={(value) =>
+                              handleRoleChange(user.id, value as UserRole)
+                            }
+                            disabled={updateRole.isPending}
+                          >
+                            <SelectTrigger className="w-28 h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={Role.SOLVER}>SOLVER</SelectItem>
+                              <SelectItem value={Role.BUYER}>BUYER</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          // Static badge for admins and self
+                          <Badge
+                            variant="outline"
+                            className={ROLE_BADGE_CLASS[user.role as UserRole]}
+                          >
+                            {user.role}
+                          </Badge>
+                        )}
+                      </TableCell>
+
+                      {/* Joined date column */}
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(user.created_at)}
+                      </TableCell>
+                    </AnimatedTableRow>
+                  );
+                })}
+              </AnimatedTableBody>
+            </Table>
+          </div>
+
+          {/* Pagination controls */}
+          {data.meta.total_pages > 1 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Showing page {data.meta.page} of {data.meta.total_pages} ({data.meta.total} users)
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page >= data.meta.total_pages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

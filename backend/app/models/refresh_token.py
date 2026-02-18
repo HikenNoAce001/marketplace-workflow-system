@@ -1,0 +1,18 @@
+from datetime import datetime, timezone
+from uuid import UUID, uuid4
+
+from sqlalchemy import Column, DateTime
+from sqlmodel import Field, SQLModel
+
+
+class RefreshToken(SQLModel, table=True):
+    __tablename__ = "refresh_tokens"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id", index=True)
+    token_hash: str
+    expires_at: datetime = Field(sa_column=Column(DateTime(timezone=True)))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+    )
