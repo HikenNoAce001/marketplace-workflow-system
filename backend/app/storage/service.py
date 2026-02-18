@@ -31,12 +31,18 @@ from app.config import settings
 # are I/O-bound and fast enough for our file sizes (<50MB).
 # ---------------------------------------------------------------------------
 
-minio_client = Minio(
-    endpoint=settings.MINIO_ENDPOINT,     # "minio:9000" inside Docker, "localhost:9000" outside
-    access_key=settings.MINIO_ACCESS_KEY, # "minioadmin" (default)
-    secret_key=settings.MINIO_SECRET_KEY, # "minioadmin" (default)
-    secure=settings.MINIO_USE_SSL,        # False for local dev, True for production
-)
+# Initialize MinIO client only if MINIO_ENDPOINT is configured.
+# On Railway without MinIO, the endpoint is empty — we skip initialization
+# so the app can start. File upload/download won't work until MinIO is added.
+minio_client: Minio | None = None
+
+if settings.MINIO_ENDPOINT:
+    minio_client = Minio(
+        endpoint=settings.MINIO_ENDPOINT,     # "minio:9000" inside Docker, "localhost:9000" outside
+        access_key=settings.MINIO_ACCESS_KEY, # "minioadmin" (default)
+        secret_key=settings.MINIO_SECRET_KEY, # "minioadmin" (default)
+        secure=settings.MINIO_USE_SSL,        # False for local dev, True for production
+    )
 
 
 def ensure_bucket_exists() -> None:
@@ -44,7 +50,11 @@ def ensure_bucket_exists() -> None:
     Create the upload bucket if it doesn't exist.
     Called once on app startup (in main.py lifespan).
     Idempotent — safe to call multiple times.
+    Skips silently if MinIO is not configured.
     """
+    if not minio_client:
+        print("⚠ MinIO not configured — skipping bucket check. File uploads disabled.")
+        return
     if not minio_client.bucket_exists(settings.MINIO_BUCKET):
         minio_client.make_bucket(settings.MINIO_BUCKET)
 
@@ -108,6 +118,9 @@ def upload_file(project_id: UUID, task_id: UUID, file_bytes: bytes) -> str:
         Prevents collisions if the same task is resubmitted multiple times.
         Each submission gets a unique filename even though they share the same task.
     """
+    if not minio_client:
+        raise RuntimeError("MinIO is not configured — file uploads are disabled")
+
     # Build the storage path: submissions/{project_id}/{task_id}/{random_uuid}.zip
     object_name = f"submissions/{project_id}/{task_id}/{uuid4()}.zip"
 
@@ -146,6 +159,9 @@ def get_presigned_url(object_name: str) -> str:
     The frontend gets this URL from GET /api/submissions/{id}/download
     and opens it in a new tab or triggers a download.
     """
+    if not minio_client:
+        raise RuntimeError("MinIO is not configured — file downloads are disabled")
+
     url = minio_client.presigned_get_object(
         bucket_name=settings.MINIO_BUCKET,
         object_name=object_name,

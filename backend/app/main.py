@@ -37,7 +37,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
+    # .strip() removes any trailing whitespace/newlines from Railway env vars
+    allow_origins=[settings.FRONTEND_URL.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

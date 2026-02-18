@@ -26,9 +26,10 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy all source code
 COPY . .
 
-# Accept the API URL as a build argument — Railway sets this at build time.
 # NEXT_PUBLIC_ vars are baked into the client JS bundle during `npm run build`,
 # so they MUST be set before the build step, not at runtime.
+# ARG receives the value from Railway (which injects service variables as build args).
+# ENV makes it available to the `npm run build` process.
 # Default to localhost for local Docker builds (docker compose up).
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
