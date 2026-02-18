@@ -57,9 +57,12 @@ export default function proxy(request: NextRequest) {
   // For protected routes, check if the refresh_token cookie exists
   // This cookie is set by the backend on login (httpOnly, so JS can't read it,
   // but proxy CAN because it runs server-side and sees all cookies)
-  const refreshToken = request.cookies.get("refresh_token");
+  // Check for "has_session" cookie set by the frontend after login.
+  // We can't check "refresh_token" here because that cookie lives on the
+  // backend domain (cross-origin), not the frontend domain.
+  const hasSession = request.cookies.get("has_session");
 
-  if (!refreshToken) {
+  if (!hasSession) {
     // No cookie = definitely not logged in → redirect to login
     // We add the original URL as a "from" param so we can redirect back
     // after login (e.g., /auth/login?from=/admin/users)

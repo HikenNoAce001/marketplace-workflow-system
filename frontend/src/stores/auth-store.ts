@@ -41,7 +41,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    * Store a new access token in memory.
    * Called after login or token refresh.
    */
-  setToken: (token: string) => set({ accessToken: token }),
+  setToken: (token: string) => {
+    // Set a non-httpOnly cookie so the proxy can detect active sessions.
+    // The refresh_token cookie lives on the backend domain (cross-origin),
+    // so the frontend proxy can't see it. This simple flag solves that.
+    if (typeof document !== "undefined") {
+      document.cookie = "has_session=1; path=/; max-age=604800; SameSite=Lax";
+    }
+    set({ accessToken: token });
+  },
 
   /**
    * Store the current user's profile.
@@ -59,7 +67,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    * Clear all auth state — called on logout or when refresh fails.
    * After this, the user is redirected to /auth/login.
    */
-  logout: () => set({ accessToken: null, user: null, isLoading: false }),
+  logout: () => {
+    // Clear the session hint cookie so the proxy redirects to login
+    if (typeof document !== "undefined") {
+      document.cookie = "has_session=; path=/; max-age=0";
+    }
+    set({ accessToken: null, user: null, isLoading: false });
+  },
 
   /**
    * Toggle loading state — true while checking if user has a valid session.
