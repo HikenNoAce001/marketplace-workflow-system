@@ -1,15 +1,6 @@
 "use client";
 
-/**
- * ThemeToggle — Animated sun/moon button for switching dark/light mode.
- *
- * WHY useEffect + mounted state?
- * next-themes reads the theme from localStorage on mount. On the server,
- * we don't know the theme yet, so we render a disabled placeholder until
- * after hydration. This prevents a flash of the wrong icon.
- *
- * The icon cross-fades with a rotation animation for a polished feel.
- */
+// Dark/light mode toggle with animated icon swap
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -21,15 +12,13 @@ export function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Only render the icon after hydration (avoids server/client mismatch)
+  // Render placeholder until hydrated to avoid icon mismatch
   useEffect(() => setMounted(true), []);
 
   if (!mounted) {
-    // Placeholder button while hydrating — same size, no icon
     return <Button variant="ghost" size="icon" className="h-9 w-9" disabled />;
   }
 
-  // resolvedTheme accounts for "system" → actual "light" or "dark"
   const isDark = resolvedTheme === "dark";
 
   return (

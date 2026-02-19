@@ -19,13 +19,10 @@ from app.storage.service import ensure_bucket_exists
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    # Startup: verify DB connection
     async with engine.begin() as conn:
         await conn.execute(text("SELECT 1"))
-    # Startup: ensure MinIO bucket exists
     ensure_bucket_exists()
     yield
-    # Shutdown: dispose engine
     await engine.dispose()
 
 
@@ -37,15 +34,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    # .strip() removes any trailing whitespace/newlines from Railway env vars
     allow_origins=[settings.FRONTEND_URL.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# Register routers
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(projects_router)
@@ -59,8 +53,8 @@ async def health_check():
     return {"status": "ok"}
 
 
-# Add "Authorize" button to Swagger UI for Bearer token
 def custom_openapi():
+    # Add Bearer auth to Swagger UI.
     if app.openapi_schema:
         return app.openapi_schema
     openapi_schema = get_openapi(

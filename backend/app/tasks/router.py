@@ -1,14 +1,4 @@
-"""
-Task Router — HTTP endpoints for task management.
-
-Endpoints:
-  POST  /api/projects/{id}/tasks    → Create task (SOLVER, assigned only)
-  GET   /api/projects/{id}/tasks    → List tasks for project (role-aware)
-  GET   /api/tasks/{id}             → Get single task (role-aware)
-  PATCH /api/tasks/{id}             → Update task metadata (SOLVER, assigned only)
-
-Note: task STATUS changes happen through submissions, not this router.
-"""
+# Task endpoints — create, list, get, update.
 
 from uuid import UUID
 
@@ -25,7 +15,7 @@ router = APIRouter(tags=["tasks"])
 
 
 def _to_read(t) -> TaskRead:
-    """Convert Task model → TaskRead schema."""
+    # Convert Task model to response schema.
     return TaskRead(
         id=t.id, project_id=t.project_id, created_by=t.created_by,
         title=t.title, description=t.description, deadline=t.deadline,
@@ -37,10 +27,10 @@ def _to_read(t) -> TaskRead:
 async def create_task(
     project_id: UUID,
     body: TaskCreate,
-    current_user: User = Depends(require_role(UserRole.SOLVER)),  # Only assigned solver
+    current_user: User = Depends(require_role(UserRole.SOLVER)),
     session: AsyncSession = Depends(get_session),
 ):
-    """Create a task on an assigned project. SOLVER only (must be the assigned one)."""
+    # Create a task on an assigned project. Must be the assigned solver.
     task = await service.create_task(
         session, current_user, project_id, body.title, body.description, body.deadline,
     )
@@ -52,10 +42,10 @@ async def list_project_tasks(
     project_id: UUID,
     page: int = 1,
     limit: int = 20,
-    current_user: User = Depends(get_current_user),  # Any auth, access checked in service
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """List all tasks for a project. Access depends on role."""
+    # List all tasks for a project.
     result = await service.list_tasks_for_project(session, project_id, current_user, page, limit)
     return TaskListResponse(
         data=[_to_read(t) for t in result["data"]],
@@ -69,7 +59,7 @@ async def get_task(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Get a single task by ID."""
+    # Get a single task by ID.
     task = await service.get_task_by_id(session, task_id, current_user)
     return _to_read(task)
 
@@ -78,10 +68,10 @@ async def get_task(
 async def update_task(
     task_id: UUID,
     body: TaskUpdate,
-    current_user: User = Depends(require_role(UserRole.SOLVER)),  # Only assigned solver
+    current_user: User = Depends(require_role(UserRole.SOLVER)),
     session: AsyncSession = Depends(get_session),
 ):
-    """Update task metadata. Cannot update COMPLETED tasks. Status managed by submissions."""
+    # Update task metadata. Status is managed by submissions, not this endpoint.
     task = await service.update_task(
         session, task_id, current_user, body.title, body.description, body.deadline,
     )

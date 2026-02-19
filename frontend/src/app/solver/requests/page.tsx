@@ -1,16 +1,6 @@
 "use client";
 
-/**
- * Solver My Requests Page — Track bid statuses across all projects.
- *
- * Shows every bid (request) this solver has submitted:
- * - PENDING  → waiting for buyer to review (yellow)
- * - ACCEPTED → buyer chose you! (green)
- * - REJECTED → buyer chose someone else (red)
- *
- * DATA FLOW:
- * useMyRequests(page) → GET /api/requests/me → paginated list of solver's bids
- */
+// Track bid statuses across all projects
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -58,7 +48,6 @@ export default function SolverRequestsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <FileText className="h-6 w-6" />
@@ -69,7 +58,6 @@ export default function SolverRequestsPage() {
         </p>
       </div>
 
-      {/* Loading */}
       {isLoading && (
         <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -78,7 +66,6 @@ export default function SolverRequestsPage() {
         </div>
       )}
 
-      {/* Error */}
       {isError && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <AlertCircle className="h-12 w-12 text-destructive mb-4" />
@@ -90,7 +77,6 @@ export default function SolverRequestsPage() {
         </div>
       )}
 
-      {/* Empty */}
       {data && data.data.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <FileText className="h-12 w-12 text-muted-foreground mb-4" />
@@ -104,7 +90,6 @@ export default function SolverRequestsPage() {
         </div>
       )}
 
-      {/* Request cards */}
       {data && data.data.length > 0 && (
         <>
           <AnimatedList className="space-y-4">
@@ -132,7 +117,6 @@ export default function SolverRequestsPage() {
                               {request.status}
                             </Badge>
                           </div>
-                          {/* Cover letter preview */}
                           <p className="text-sm text-muted-foreground line-clamp-2">
                             {request.cover_letter}
                           </p>
@@ -141,7 +125,6 @@ export default function SolverRequestsPage() {
                           </p>
                         </div>
 
-                        {/* Click hint */}
                         <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
                       </div>
                     </CardContent>
@@ -151,7 +134,6 @@ export default function SolverRequestsPage() {
             })}
           </AnimatedList>
 
-          {/* Pagination */}
           {data.meta.total_pages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">

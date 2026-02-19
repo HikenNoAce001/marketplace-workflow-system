@@ -24,7 +24,7 @@ class User(SQLModel, table=True):
     avatar_url: str | None = None
     bio: str | None = None
     skills: list[str] = Field(default=[], sa_column=Column(ARRAY(String)))
-    provider: str  # "GOOGLE" or "GITHUB"
+    provider: str
     provider_id: str
     role: UserRole = Field(default=UserRole.SOLVER)
     created_at: datetime = Field(

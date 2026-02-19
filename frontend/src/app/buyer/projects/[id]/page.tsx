@@ -1,27 +1,6 @@
 "use client";
 
-/**
- * Buyer Project Detail Page — The command center for a single project.
- *
- * This is where the buyer manages the full lifecycle:
- * 1. OPEN phase: review solver bids → accept one (project → ASSIGNED)
- * 2. ASSIGNED phase: monitor tasks → review submissions → accept/reject work
- * 3. COMPLETED phase: all done — view final state
- *
- * THREE TABS:
- * - Overview: project info (title, description, status, budget, deadline, solver)
- * - Requests: solver bids with accept/reject buttons (only for OPEN projects)
- * - Tasks: task list with submissions — download ZIP, accept/reject work
- *
- * DATA FLOW:
- * useProject(id)             → project info
- * useProjectRequests(id)     → solver bids
- * useProjectTasks(id)        → task list
- * useTaskSubmissions(taskId) → submissions per task (loaded on expand)
- *
- * URL: /buyer/projects/[id]
- * Next.js 16: params is async — must await it
- */
+// Buyer project detail — overview, requests (accept/reject bids), tasks (review submissions)
 
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -73,10 +52,6 @@ import {
 import { ProjectState, RequestState, SubmissionState } from "@/types";
 import type { ProjectStatus, RequestStatus, TaskStatus, SubmissionStatus, Task } from "@/types";
 
-// ============================================================
-// Status badge color maps — consistent across the app
-// ============================================================
-
 const PROJECT_STATUS_CLASS: Record<ProjectStatus, string> = {
   OPEN: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
   ASSIGNED: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
@@ -102,12 +77,8 @@ const SUBMISSION_STATUS_CLASS: Record<SubmissionStatus, string> = {
   REJECTED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
 };
 
-// ============================================================
-// Helper functions
-// ============================================================
-
 const formatDate = (dateStr: string | null) => {
-  if (!dateStr) return "—";
+  if (!dateStr) return "\u2014";
   return new Date(dateStr).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
@@ -116,7 +87,7 @@ const formatDate = (dateStr: string | null) => {
 };
 
 const formatBudget = (budget: number | null) => {
-  if (budget === null || budget === undefined) return "—";
+  if (budget === null || budget === undefined) return "\u2014";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -124,30 +95,23 @@ const formatBudget = (budget: number | null) => {
   }).format(budget);
 };
 
-/** Format file size in bytes to human-readable (KB, MB) */
 const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-// ============================================================
-// Main Page Component
-// ============================================================
-
 export default function BuyerProjectDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  // Next.js 16: params is async — use React.use() to unwrap the promise
+  // Next.js 16: params is async
   const { id: projectId } = use(params);
   const router = useRouter();
 
-  // Fetch the project detail
   const { data: project, isLoading, isError, refetch } = useProject(projectId);
 
-  // While loading, show a skeleton
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -158,7 +122,6 @@ export default function BuyerProjectDetailPage({
     );
   }
 
-  // Error state
   if (isError || !project) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -181,7 +144,6 @@ export default function BuyerProjectDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Header — back button + project title + status badge */}
       <div>
         <Button
           variant="ghost"
@@ -200,11 +162,9 @@ export default function BuyerProjectDetailPage({
           />
         </div>
 
-        {/* Lifecycle stepper — visual progress through OPEN → ASSIGNED → COMPLETED */}
         <LifecycleStepper type="project" currentStatus={project.status} className="mt-4" />
       </div>
 
-      {/* Tabs — Overview, Requests, Tasks */}
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -212,23 +172,14 @@ export default function BuyerProjectDetailPage({
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
         </TabsList>
 
-        {/* ============================================ */}
-        {/* TAB: Overview — project details              */}
-        {/* ============================================ */}
         <TabsContent value="overview">
           <OverviewTab project={project} />
         </TabsContent>
 
-        {/* ============================================ */}
-        {/* TAB: Requests — solver bids                  */}
-        {/* ============================================ */}
         <TabsContent value="requests">
           <RequestsTab projectId={projectId} projectStatus={project.status} />
         </TabsContent>
 
-        {/* ============================================ */}
-        {/* TAB: Tasks — task list + submissions         */}
-        {/* ============================================ */}
         <TabsContent value="tasks">
           <TasksTab projectId={projectId} projectStatus={project.status} />
         </TabsContent>
@@ -237,27 +188,20 @@ export default function BuyerProjectDetailPage({
   );
 }
 
-// ============================================================
-// Overview Tab — shows project metadata
-// ============================================================
-
 function OverviewTab({ project }: { project: { title: string; description: string; status: ProjectStatus; budget: number | null; deadline: string | null; assigned_solver_id: string | null; created_at: string } }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      {/* Description card — full width */}
       <Card className="md:col-span-2">
         <CardHeader>
           <CardTitle className="text-base">Description</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Whitespace-pre-wrap preserves newlines the buyer typed */}
           <p className="text-muted-foreground whitespace-pre-wrap">
             {project.description}
           </p>
         </CardContent>
       </Card>
 
-      {/* Budget card */}
       <Card>
         <CardContent className="flex items-center gap-3 pt-6">
           <DollarSign className="h-5 w-5 text-muted-foreground" />
@@ -268,7 +212,6 @@ function OverviewTab({ project }: { project: { title: string; description: strin
         </CardContent>
       </Card>
 
-      {/* Deadline card */}
       <Card>
         <CardContent className="flex items-center gap-3 pt-6">
           <Calendar className="h-5 w-5 text-muted-foreground" />
@@ -279,7 +222,6 @@ function OverviewTab({ project }: { project: { title: string; description: strin
         </CardContent>
       </Card>
 
-      {/* Assigned solver card */}
       <Card>
         <CardContent className="flex items-center gap-3 pt-6">
           <User className="h-5 w-5 text-muted-foreground" />
@@ -292,7 +234,6 @@ function OverviewTab({ project }: { project: { title: string; description: strin
         </CardContent>
       </Card>
 
-      {/* Created date card */}
       <Card>
         <CardContent className="flex items-center gap-3 pt-6">
           <Clock className="h-5 w-5 text-muted-foreground" />
@@ -306,10 +247,6 @@ function OverviewTab({ project }: { project: { title: string; description: strin
   );
 }
 
-// ============================================================
-// Requests Tab — solver bids with accept/reject
-// ============================================================
-
 function RequestsTab({
   projectId,
   projectStatus,
@@ -321,13 +258,6 @@ function RequestsTab({
   const acceptRequest = useAcceptRequest(projectId);
   const rejectRequest = useRejectRequest(projectId);
 
-  /**
-   * Accept a solver's bid. This triggers a CASCADE on the backend:
-   * - This request → ACCEPTED
-   * - All other PENDING requests → REJECTED
-   * - Solver assigned to project
-   * - Project → ASSIGNED
-   */
   const handleAccept = async (requestId: string) => {
     try {
       await acceptRequest.mutateAsync(requestId);
@@ -350,7 +280,6 @@ function RequestsTab({
     }
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -361,7 +290,6 @@ function RequestsTab({
     );
   }
 
-  // Error state
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -374,7 +302,6 @@ function RequestsTab({
     );
   }
 
-  // Empty state
   if (!data || data.data.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -387,7 +314,6 @@ function RequestsTab({
     );
   }
 
-  // Data state — list of request cards with stagger animation
   return (
     <AnimatedList className="space-y-4">
       {data.data.map((request) => (
@@ -395,7 +321,6 @@ function RequestsTab({
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-start justify-between gap-4">
-                {/* Left side — solver info + cover letter */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <User className="h-4 w-4 text-muted-foreground" />
@@ -407,7 +332,6 @@ function RequestsTab({
                       className={REQUEST_STATUS_CLASS[request.status]}
                     />
                   </div>
-                  {/* Cover letter — what the solver pitched */}
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                     {request.cover_letter}
                   </p>
@@ -416,7 +340,6 @@ function RequestsTab({
                   </p>
                 </div>
 
-                {/* Right side — accept/reject with tap micro-interactions */}
                 {request.status === RequestState.PENDING && projectStatus === ProjectState.OPEN && (
                   <div className="flex gap-2 flex-shrink-0">
                     <motion.div whileTap={{ scale: 0.95 }}>
@@ -453,10 +376,6 @@ function RequestsTab({
   );
 }
 
-// ============================================================
-// Tasks Tab — task list with expandable submissions
-// ============================================================
-
 function TasksTab({
   projectId,
   projectStatus,
@@ -466,7 +385,6 @@ function TasksTab({
 }) {
   const { data, isLoading, isError, refetch } = useProjectTasks(projectId);
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -477,7 +395,6 @@ function TasksTab({
     );
   }
 
-  // Error state
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -490,7 +407,6 @@ function TasksTab({
     );
   }
 
-  // Empty state — different message based on project status
   if (!data || data.data.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -505,7 +421,6 @@ function TasksTab({
     );
   }
 
-  // Data state — each task is expandable to show its submissions
   return (
     <AnimatedList className="space-y-4">
       {data.data.map((task) => (
@@ -517,24 +432,17 @@ function TasksTab({
   );
 }
 
-// ============================================================
-// Task Card — single task with expandable submissions
-// ============================================================
-
 function TaskCard({ task, projectId }: { task: Task; projectId: string }) {
-  // Track whether this task's submissions are expanded
   const [expanded, setExpanded] = useState(false);
 
   return (
     <Card>
       <CardContent className="pt-6">
-        {/* Task header — click to expand/collapse submissions */}
         <button
           onClick={() => setExpanded(!expanded)}
           className="flex items-center justify-between w-full text-left"
         >
           <div className="flex items-center gap-3">
-            {/* Expand/collapse chevron */}
             {expanded ? (
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             ) : (
@@ -555,7 +463,6 @@ function TaskCard({ task, projectId }: { task: Task; projectId: string }) {
             </div>
           </div>
 
-          {/* Task deadline if set */}
           {task.deadline && (
             <span className="text-xs text-muted-foreground flex-shrink-0 ml-4">
               Due: {formatDate(task.deadline)}
@@ -563,7 +470,6 @@ function TaskCard({ task, projectId }: { task: Task; projectId: string }) {
           )}
         </button>
 
-        {/* Submissions panel — smooth expand/collapse animation */}
         <AnimatePresence>
           {expanded && (
             <motion.div
@@ -588,10 +494,6 @@ function TaskCard({ task, projectId }: { task: Task; projectId: string }) {
   );
 }
 
-// ============================================================
-// Submissions Panel — list of ZIPs for a task
-// ============================================================
-
 function SubmissionsPanel({
   taskId,
   taskStatus,
@@ -605,12 +507,10 @@ function SubmissionsPanel({
   const acceptSubmission = useAcceptSubmission(projectId, taskId);
   const rejectSubmission = useRejectSubmission(projectId, taskId);
 
-  // State for the reject dialog — buyer must provide feedback notes
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [reviewerNotes, setReviewerNotes] = useState("");
 
-  /** Accept a submission — CASCADE: submission ACCEPTED, task COMPLETED, maybe project COMPLETED */
   const handleAccept = async (submissionId: string) => {
     try {
       await acceptSubmission.mutateAsync(submissionId);
@@ -622,14 +522,12 @@ function SubmissionsPanel({
     }
   };
 
-  /** Open the reject dialog — buyer needs to type feedback before rejecting */
   const openRejectDialog = (submissionId: string) => {
     setRejectingId(submissionId);
     setReviewerNotes("");
     setRejectDialogOpen(true);
   };
 
-  /** Confirm rejection with notes — task goes to REVISION_REQUESTED */
   const handleRejectConfirm = async () => {
     if (!rejectingId || !reviewerNotes.trim()) {
       toast.error("Please provide feedback notes for the solver.");
@@ -651,7 +549,6 @@ function SubmissionsPanel({
     }
   };
 
-  /** Download ZIP via presigned URL */
   const handleDownload = async (submissionId: string) => {
     try {
       await downloadSubmission(submissionId);
@@ -662,7 +559,6 @@ function SubmissionsPanel({
     }
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="space-y-3 py-2">
@@ -672,7 +568,6 @@ function SubmissionsPanel({
     );
   }
 
-  // Error state
   if (isError) {
     return (
       <div className="py-4 text-center">
@@ -684,7 +579,6 @@ function SubmissionsPanel({
     );
   }
 
-  // Empty state
   if (!data || data.data.length === 0) {
     return (
       <div className="py-4 text-center">
@@ -695,7 +589,6 @@ function SubmissionsPanel({
     );
   }
 
-  // Data state — list of submissions (newest first from backend)
   return (
     <>
       <div className="space-y-3 py-2">
@@ -705,7 +598,6 @@ function SubmissionsPanel({
             className="rounded-lg border p-4 bg-background"
           >
             <div className="flex items-start justify-between gap-4">
-              {/* Left side — file info + notes */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <FileText className="h-4 w-4 text-muted-foreground" />
@@ -717,7 +609,6 @@ function SubmissionsPanel({
                     status={submission.status}
                     className={SUBMISSION_STATUS_CLASS[submission.status]}
                   />
-                  {/* Mark the latest submission */}
                   {index === 0 && (
                     <Badge variant="secondary" className="text-xs">
                       Latest
@@ -725,14 +616,12 @@ function SubmissionsPanel({
                   )}
                 </div>
 
-                {/* Solver's notes (if any) */}
                 {submission.notes && (
                   <p className="text-sm text-muted-foreground mt-1">
                     <span className="font-medium">Notes:</span> {submission.notes}
                   </p>
                 )}
 
-                {/* Reviewer's feedback (if rejected) */}
                 {submission.reviewer_notes && (
                   <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
                     <span className="font-medium">Feedback:</span> {submission.reviewer_notes}
@@ -745,9 +634,7 @@ function SubmissionsPanel({
                 </p>
               </div>
 
-              {/* Right side — action buttons */}
               <div className="flex gap-2 flex-shrink-0">
-                {/* Download button — always available */}
                 <Button
                   size="sm"
                   variant="outline"
@@ -758,7 +645,6 @@ function SubmissionsPanel({
                   Download
                 </Button>
 
-                {/* Accept/Reject buttons — only for PENDING_REVIEW submissions */}
                 {submission.status === SubmissionState.PENDING_REVIEW && (
                   <>
                     <Button
@@ -788,7 +674,6 @@ function SubmissionsPanel({
         ))}
       </div>
 
-      {/* Reject Dialog — buyer must provide feedback when rejecting */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <DialogContent>
           <DialogHeader>

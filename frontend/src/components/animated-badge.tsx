@@ -1,27 +1,13 @@
 "use client";
 
-/**
- * AnimatedBadge — Badge that animates when its status text changes.
- *
- * When a real-time poll detects a status transition (e.g., OPEN → ASSIGNED),
- * this component provides a visual pop + color shift so the user notices
- * the change without manually comparing text.
- *
- * Uses AnimatePresence with mode="wait" — the old badge fades out,
- * then the new one scales in. The key prop triggers the swap.
- *
- * Drop-in replacement for static <Badge> on status displays.
- */
+// Badge that animates on status change (e.g., OPEN -> ASSIGNED)
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 
 interface AnimatedBadgeProps {
-  /** The status value — used as the animation key (triggers re-animation on change) */
   status: string;
-  /** Tailwind classes for the badge (color, border, etc.) */
   className?: string;
-  /** Display text (e.g., "PENDING REVIEW" from "PENDING_REVIEW"). Defaults to status with _ → spaces */
   label?: string;
 }
 

@@ -1,23 +1,6 @@
 "use client";
 
-/**
- * Buyer Projects Page — View own projects + create new ones.
- *
- * PDF SPEC FOR BUYER:
- * - "Create a project" → "New Project" button → /buyer/projects/new
- * - "View incoming requests from problem solvers" → click project → detail page
- * - Projects are role-filtered by the backend (buyer sees only their own)
- *
- * FEATURES:
- * - Paginated table of buyer's projects (title, status, budget, deadline, created)
- * - Status badges: OPEN=blue, ASSIGNED=yellow, COMPLETED=green
- * - Click any row → navigate to /buyer/projects/{id} (detail page with tabs)
- * - "New Project" CTA button in header
- * - 3 states: loading skeleton, error + retry, empty state with CTA
- *
- * DATA FLOW:
- * useProjects(page) → GET /api/projects → backend returns only buyer's projects
- */
+// Buyer's project list with create button
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -44,10 +27,6 @@ import {
 } from "lucide-react";
 import type { ProjectStatus } from "@/types";
 
-/**
- * Project status badge colors — same as admin projects page.
- * OPEN = accepting bids, ASSIGNED = solver working, COMPLETED = all done.
- */
 const STATUS_BADGE_CLASS: Record<ProjectStatus, string> = {
   OPEN: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
   ASSIGNED: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
@@ -59,9 +38,8 @@ export default function BuyerProjectsPage() {
   const router = useRouter();
   const { data, isLoading, isError, refetch } = useProjects(page);
 
-  // Format ISO date string to readable format
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "—";
+    if (!dateStr) return "\u2014";
     return new Date(dateStr).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -69,9 +47,8 @@ export default function BuyerProjectsPage() {
     });
   };
 
-  // Format budget as currency
   const formatBudget = (budget: number | null) => {
-    if (budget === null || budget === undefined) return "—";
+    if (budget === null || budget === undefined) return "\u2014";
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
@@ -81,7 +58,6 @@ export default function BuyerProjectsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header with "New Project" button */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -103,9 +79,6 @@ export default function BuyerProjectsPage() {
         </motion.div>
       </div>
 
-      {/* ============================================ */}
-      {/* STATE: Loading — skeleton rows               */}
-      {/* ============================================ */}
       {isLoading && (
         <div className="rounded-lg border">
           <Table>
@@ -113,6 +86,7 @@ export default function BuyerProjectsPage() {
               <TableRow>
                 <TableHead>Title</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Assigned To</TableHead>
                 <TableHead>Budget</TableHead>
                 <TableHead>Deadline</TableHead>
                 <TableHead>Created</TableHead>
@@ -121,21 +95,12 @@ export default function BuyerProjectsPage() {
             <TableBody>
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell>
-                    <Skeleton className="h-4 w-48" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-6 w-20" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-16" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-24" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-24" />
-                  </TableCell>
+                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -143,9 +108,6 @@ export default function BuyerProjectsPage() {
         </div>
       )}
 
-      {/* ============================================ */}
-      {/* STATE: Error — message with retry            */}
-      {/* ============================================ */}
       {isError && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <AlertCircle className="h-12 w-12 text-destructive mb-4" />
@@ -159,9 +121,6 @@ export default function BuyerProjectsPage() {
         </div>
       )}
 
-      {/* ============================================ */}
-      {/* STATE: Empty — no projects yet + CTA         */}
-      {/* ============================================ */}
       {data && data.data.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <ShoppingCart className="h-12 w-12 text-muted-foreground mb-4" />
@@ -179,9 +138,6 @@ export default function BuyerProjectsPage() {
         </div>
       )}
 
-      {/* ============================================ */}
-      {/* STATE: Data — clickable project table        */}
-      {/* ============================================ */}
       {data && data.data.length > 0 && (
         <>
           <div className="rounded-lg border">
@@ -190,26 +146,22 @@ export default function BuyerProjectsPage() {
                 <TableRow>
                   <TableHead>Title</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Assigned To</TableHead>
                   <TableHead>Budget</TableHead>
                   <TableHead>Deadline</TableHead>
                   <TableHead>Created</TableHead>
                 </TableRow>
               </TableHeader>
-              {/* AnimatedTableBody staggers each row's entrance (50ms apart) */}
               <AnimatedTableBody className="[&_tr:last-child]:border-0">
                 {data.data.map((project) => (
                   <AnimatedTableRow
                     key={project.id}
-                    // Click row → navigate to project detail page
                     onClick={() => router.push(`/buyer/projects/${project.id}`)}
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
                   >
-                    {/* Title — main identifier */}
                     <TableCell className="font-medium">
                       {project.title}
                     </TableCell>
-
-                    {/* Status badge with color */}
                     <TableCell>
                       <Badge
                         variant="outline"
@@ -218,18 +170,15 @@ export default function BuyerProjectsPage() {
                         {project.status}
                       </Badge>
                     </TableCell>
-
-                    {/* Budget — formatted as currency or dash */}
+                    <TableCell className="text-muted-foreground">
+                      {project.assigned_solver_name || "\u2014"}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatBudget(project.budget)}
                     </TableCell>
-
-                    {/* Deadline — formatted date or dash */}
                     <TableCell className="text-muted-foreground">
                       {formatDate(project.deadline)}
                     </TableCell>
-
-                    {/* Created date */}
                     <TableCell className="text-muted-foreground">
                       {formatDate(project.created_at)}
                     </TableCell>
@@ -239,7 +188,6 @@ export default function BuyerProjectsPage() {
             </Table>
           </div>
 
-          {/* Pagination controls */}
           {data.meta.total_pages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">

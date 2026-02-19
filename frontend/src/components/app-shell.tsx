@@ -1,36 +1,6 @@
 "use client";
 
-/**
- * AppShell — Shared layout for all authenticated pages.
- *
- * Provides a consistent structure:
- * ┌─────────────────────────────────────────┐
- * │  NAVBAR (app name, user info, logout)   │
- * ├──────────┬──────────────────────────────┤
- * │          │                              │
- * │ SIDEBAR  │         CONTENT              │
- * │ (nav     │         (page renders here)  │
- * │  links)  │                              │
- * │          │                              │
- * └──────────┴──────────────────────────────┘
- *
- * WHY A SHARED SHELL?
- * Every authenticated page (admin, buyer, solver) needs the same navbar
- * and a sidebar with role-specific links. Instead of duplicating this in
- * every page, we create one shell and swap the content area.
- *
- * ROLE THEMING:
- * The sidebar has a colored left border accent per role:
- * - ADMIN = red, BUYER = blue, SOLVER = green
- * This gives instant visual feedback about which role is active.
- * Defined via CSS variables in globals.css ([data-role="..."]).
- *
- * ANIMATIONS:
- * - Active nav link has a sliding background pill (layoutId animation)
- * - Nav links shift right on hover (micro-interaction)
- * - Sign Out button scales on click
- * - Content area fades in on route change
- */
+// Shared layout for all authenticated pages — sidebar + navbar + content area
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -51,11 +21,6 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { UserRole } from "@/types";
 
-/**
- * Navigation items per role.
- * Each item has: label (shown text), href (route), icon (lucide icon).
- * The sidebar renders only the items for the current user's role.
- */
 const NAV_ITEMS: Record<UserRole, { label: string; href: string; icon: React.ElementType }[]> = {
   ADMIN: [
     { label: "Users", href: "/admin/users", icon: Users },
@@ -71,29 +36,19 @@ const NAV_ITEMS: Record<UserRole, { label: string; href: string; icon: React.Ele
   ],
 };
 
-/**
- * Role badge colors — consistent across the entire app.
- * Same colors used on login page, dashboard, and here.
- */
 const ROLE_BADGE_CLASS: Record<UserRole, string> = {
   ADMIN: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
   BUYER: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
   SOLVER: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
 };
 
-/**
- * Role icons — shown next to the role name in the navbar.
- */
 const ROLE_ICON: Record<UserRole, React.ElementType> = {
   ADMIN: Users,
   BUYER: ShoppingCart,
   SOLVER: Wrench,
 };
 
-/**
- * Role accent colors for the sidebar left border.
- * These map to Tailwind color classes per role.
- */
+// Colored left border accent per role
 const ROLE_SIDEBAR_ACCENT: Record<UserRole, string> = {
   ADMIN: "border-l-red-500",
   BUYER: "border-l-blue-500",
@@ -104,8 +59,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
 
-  // If no user (shouldn't happen — proxy + AuthProvider protect this),
-  // render nothing. AuthProvider will redirect to login.
   if (!user) return null;
 
   const role = user.role as UserRole;
@@ -113,29 +66,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const RoleIcon = ROLE_ICON[role];
 
   return (
-    // data-role enables role-specific CSS variables (see globals.css)
     <div className="flex h-screen bg-background" data-role={role}>
-      {/* ============================================ */}
-      {/* SIDEBAR — role-specific navigation           */}
-      {/* Colored left border provides role distinction */}
-      {/* ============================================ */}
+      {/* Sidebar */}
       <aside className={`flex w-64 flex-col border-r border-l-4 bg-card ${ROLE_SIDEBAR_ACCENT[role]}`}>
-        {/* App branding at the top of sidebar */}
         <div className="flex h-16 items-center gap-2 px-6 border-b">
           <FolderKanban className="h-6 w-6 text-primary" />
           <span className="font-semibold text-lg">Marketplace</span>
         </div>
 
-        {/* Navigation links — one per role-allowed page */}
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            // Highlight the active link based on current URL
             const isActive = pathname.startsWith(item.href);
 
             return (
               <Link key={item.href} href={item.href}>
-                {/* motion.div enables hover/tap micro-interactions */}
                 <motion.div
                   className={`
                     relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium
@@ -145,11 +90,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       : "text-muted-foreground hover:text-foreground"
                     }
                   `}
-                  // Subtle rightward shift on hover — indicates interactivity
                   whileHover={{ x: 4 }}
                   transition={{ duration: 0.15 }}
                 >
-                  {/* Animated active background pill — slides between links */}
+                  {/* Active background pill — slides between links */}
                   {isActive && (
                     <motion.div
                       layoutId="activeNavPill"
@@ -157,7 +101,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
-                  {/* Icon and label sit above the background pill */}
                   <Icon className="relative h-4 w-4" />
                   <span className="relative">{item.label}</span>
                 </motion.div>
@@ -166,10 +109,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* User info at bottom of sidebar */}
         <div className="border-t p-4">
           <div className="flex items-center gap-3">
-            {/* User avatar circle with first letter of name */}
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-sm">
               {user.name.charAt(0).toUpperCase()}
             </div>
@@ -181,13 +122,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* ============================================ */}
-      {/* MAIN AREA — navbar + content                  */}
-      {/* ============================================ */}
+      {/* Main area */}
       <div className="flex flex-1 flex-col min-w-0">
-        {/* TOP NAVBAR */}
         <header className="flex h-16 items-center justify-between border-b px-6 bg-card">
-          {/* Left side: role indicator with entrance animation */}
           <motion.div
             className="flex items-center gap-2"
             initial={{ opacity: 0, x: -10 }}
@@ -200,7 +137,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Badge>
           </motion.div>
 
-          {/* Right side: theme toggle + logout */}
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <motion.div whileTap={{ scale: 0.97 }}>
@@ -217,7 +153,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* CONTENT AREA — animated page transitions on route change */}
+        {/* Page content with route transition */}
         <main className="flex-1 overflow-y-auto p-6">
           <AnimatePresence mode="wait">
             <motion.div

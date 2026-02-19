@@ -1,21 +1,6 @@
 "use client";
 
-/**
- * Solver Projects Page — Browse available projects.
- *
- * PDF SPEC FOR SOLVER:
- * - "View available projects" → OPEN projects they can bid on
- * - Backend also returns projects assigned to this solver
- *
- * FEATURES:
- * - Paginated table of projects (OPEN + assigned to solver)
- * - Status badges: OPEN=blue (available), ASSIGNED=yellow (you're working on it)
- * - Click any row → navigate to /solver/projects/{id} (detail page)
- * - 3 states: loading skeleton, error + retry, empty state
- *
- * DATA FLOW:
- * useProjects(page) → GET /api/projects → backend returns OPEN + assigned projects
- */
+// Browse open projects and view assigned ones
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -52,7 +37,7 @@ export default function SolverProjectsPage() {
   const { data, isLoading, isError, refetch } = useProjects(page);
 
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "—";
+    if (!dateStr) return "\u2014";
     return new Date(dateStr).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -61,7 +46,7 @@ export default function SolverProjectsPage() {
   };
 
   const formatBudget = (budget: number | null) => {
-    if (budget === null || budget === undefined) return "—";
+    if (budget === null || budget === undefined) return "\u2014";
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
@@ -71,7 +56,6 @@ export default function SolverProjectsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Search className="h-6 w-6" />
@@ -82,13 +66,13 @@ export default function SolverProjectsPage() {
         </p>
       </div>
 
-      {/* Loading */}
       {isLoading && (
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Title</TableHead>
+                <TableHead>Posted By</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Budget</TableHead>
                 <TableHead>Deadline</TableHead>
@@ -99,6 +83,7 @@ export default function SolverProjectsPage() {
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
@@ -110,7 +95,6 @@ export default function SolverProjectsPage() {
         </div>
       )}
 
-      {/* Error */}
       {isError && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <AlertCircle className="h-12 w-12 text-destructive mb-4" />
@@ -124,18 +108,16 @@ export default function SolverProjectsPage() {
         </div>
       )}
 
-      {/* Empty */}
       {data && data.data.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <Search className="h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold">No projects available</h3>
           <p className="text-muted-foreground">
-            Check back later — buyers will post new projects here.
+            Check back later -- buyers will post new projects here.
           </p>
         </div>
       )}
 
-      {/* Data — clickable project table */}
       {data && data.data.length > 0 && (
         <>
           <div className="rounded-lg border">
@@ -143,13 +125,13 @@ export default function SolverProjectsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
+                  <TableHead>Posted By</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Budget</TableHead>
                   <TableHead>Deadline</TableHead>
                   <TableHead>Posted</TableHead>
                 </TableRow>
               </TableHeader>
-              {/* AnimatedTableBody staggers each row's entrance */}
               <AnimatedTableBody className="[&_tr:last-child]:border-0">
                 {data.data.map((project) => (
                   <AnimatedTableRow
@@ -159,6 +141,9 @@ export default function SolverProjectsPage() {
                   >
                     <TableCell className="font-medium">
                       {project.title}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {project.buyer_name}
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -183,7 +168,6 @@ export default function SolverProjectsPage() {
             </Table>
           </div>
 
-          {/* Pagination */}
           {data.meta.total_pages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">

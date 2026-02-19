@@ -1,29 +1,5 @@
 "use client";
 
-/**
- * use-solver.ts — TanStack Query hooks for ALL solver operations.
- *
- * QUERIES (fetching data):
- * - useProject(id)              → Single project detail
- * - useProjectTasks(id)         → Tasks within an assigned project
- * - useTaskSubmissions(taskId)  → ZIP submissions for a task
- * - useMyRequests(page)         → Solver's own bids across all projects
- * - useMyProfile()              → Solver's profile (bio + skills)
- *
- * MUTATIONS (changing data):
- * - useCreateRequest(projectId) → POST bid on a project
- * - useCreateTask(projectId)    → POST new task on assigned project
- * - useUpdateTask(projectId)    → PATCH task metadata (title, desc, deadline)
- * - useUploadSubmission(projectId, taskId) → Upload ZIP file
- * - useUpdateProfile()          → PATCH bio + skills
- *
- * WHY SEPARATE FROM use-buyer.ts?
- * Solvers and buyers have different operations and different cache invalidation
- * patterns. Keeping them separate makes each file focused and easy to reason about.
- * Some query keys overlap (project, project-tasks, task-submissions) — that's fine,
- * TanStack Query deduplicates them if both roles happen to fetch the same data.
- */
-
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
@@ -40,14 +16,8 @@ import type {
   UpdateProfilePayload,
 } from "@/types";
 
-// ============================================================
-// QUERIES — fetching data
-// ============================================================
+// Queries
 
-/**
- * Fetch a single project by ID.
- * Solver can see OPEN projects (to browse/bid) and projects assigned to them.
- */
 export function useProject(projectId: string) {
   return useQuery({
     queryKey: ["project", projectId],
@@ -57,17 +27,11 @@ export function useProject(projectId: string) {
       return res.json();
     },
     enabled: !!projectId,
-
-    // Poll every 5s — buyer might accept bid or change project status
     refetchInterval: 5_000,
     refetchIntervalInBackground: false,
   });
 }
 
-/**
- * Fetch tasks for a project the solver is assigned to.
- * The backend checks that the solver is either assigned or an admin.
- */
 export function useProjectTasks(projectId: string, page: number = 1) {
   return useQuery({
     queryKey: ["project-tasks", projectId, page],
@@ -79,17 +43,12 @@ export function useProjectTasks(projectId: string, page: number = 1) {
       return res.json();
     },
     enabled: !!projectId,
-
-    // Poll for task status changes (buyer accepted/rejected submission)
     refetchInterval: 5_000,
     refetchIntervalInBackground: false,
   });
 }
 
-/**
- * Fetch submissions for a specific task.
- * Shows the solver their submission history (newest first).
- */
+// Submission history, newest first
 export function useTaskSubmissions(taskId: string) {
   return useQuery({
     queryKey: ["task-submissions", taskId],
@@ -99,17 +58,11 @@ export function useTaskSubmissions(taskId: string) {
       return res.json();
     },
     enabled: !!taskId,
-
-    // Poll for submission review results (accepted/rejected by buyer)
     refetchInterval: 5_000,
     refetchIntervalInBackground: false,
   });
 }
 
-/**
- * Fetch the solver's own bids across all projects.
- * GET /api/requests/me → shows status of each bid (PENDING, ACCEPTED, REJECTED).
- */
 export function useMyRequests(page: number = 1) {
   return useQuery({
     queryKey: ["my-requests", page],
@@ -118,17 +71,11 @@ export function useMyRequests(page: number = 1) {
       if (!res.ok) throw new Error("Failed to fetch requests");
       return res.json();
     },
-
-    // Poll every 10s — bid statuses change when buyer accepts/rejects
     refetchInterval: 10_000,
     refetchIntervalInBackground: false,
   });
 }
 
-/**
- * Fetch the solver's own profile (bio + skills).
- * GET /api/users/me/profile → UserRead with bio, skills, etc.
- */
 export function useMyProfile() {
   return useQuery({
     queryKey: ["my-profile"],
@@ -140,15 +87,8 @@ export function useMyProfile() {
   });
 }
 
-// ============================================================
-// MUTATIONS — changing data
-// ============================================================
+// Mutations
 
-/**
- * Submit a bid (request) on a project.
- * POST /api/projects/{id}/requests { cover_letter }
- * Only works on OPEN projects. One bid per solver per project.
- */
 export function useCreateRequest(projectId: string) {
   const queryClient = useQueryClient();
 
@@ -165,18 +105,12 @@ export function useCreateRequest(projectId: string) {
       return res.json();
     },
     onSuccess: () => {
-      // Refresh the requests list and project detail (to reflect new bid)
       queryClient.invalidateQueries({ queryKey: ["my-requests"] });
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
     },
   });
 }
 
-/**
- * Create a task on an assigned project.
- * POST /api/projects/{id}/tasks { title, description, deadline? }
- * Only the assigned solver can create tasks. Project must be ASSIGNED.
- */
 export function useCreateTask(projectId: string) {
   const queryClient = useQueryClient();
 
@@ -193,17 +127,11 @@ export function useCreateTask(projectId: string) {
       return res.json();
     },
     onSuccess: () => {
-      // Refresh the task list to show the new task
       queryClient.invalidateQueries({ queryKey: ["project-tasks", projectId] });
     },
   });
 }
 
-/**
- * Update task metadata (title, description, deadline).
- * PATCH /api/tasks/{id} { title?, description?, deadline? }
- * Only the assigned solver can update. Cannot update COMPLETED tasks.
- */
 export function useUpdateTask(projectId: string) {
   const queryClient = useQueryClient();
 
@@ -228,27 +156,11 @@ export function useUpdateTask(projectId: string) {
   });
 }
 
-/**
- * Upload a ZIP submission for a task — WITH upload progress tracking.
- * POST /api/tasks/{id}/submissions (multipart/form-data)
- *
- * Uses api.uploadWithProgress() (XMLHttpRequest) instead of api.upload() (fetch)
- * to get granular progress events. This lets the UI show a real progress bar
- * instead of just a spinner — important for large ZIP files (up to 50MB).
- *
- * RETURNS:
- * - mutation: the standard TanStack mutation object (mutateAsync, isPending, etc.)
- * - uploadProgress: number 0–100 showing upload percentage
- * - resetProgress: function to reset progress back to 0
- *
- * CASCADE: creates submission (PENDING_REVIEW) + task → SUBMITTED
- */
+// Uses XHR for upload progress tracking
 export function useUploadSubmission(projectId: string, taskId: string) {
   const queryClient = useQueryClient();
-  // Track upload progress as a percentage (0–100)
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  // Reset progress — called after upload completes or is cancelled
   const resetProgress = useCallback(() => setUploadProgress(0), []);
 
   const mutation = useMutation({
@@ -263,10 +175,8 @@ export function useUploadSubmission(projectId: string, taskId: string) {
       formData.append("file", file);
       if (notes) formData.append("notes", notes);
 
-      // Reset progress at the start of each upload
       setUploadProgress(0);
 
-      // Use XMLHttpRequest-based upload for progress events
       const res = await api.uploadWithProgress(
         `/tasks/${taskId}/submissions`,
         formData,
@@ -275,9 +185,7 @@ export function useUploadSubmission(projectId: string, taskId: string) {
 
       if (!res.ok) {
         const error = await res.json();
-        // FastAPI returns { detail: "string" } for 400 errors, but
-        // { detail: [{msg: "..."}] } for 422 validation errors.
-        // Handle both formats gracefully.
+        // Handle both string and array error formats from FastAPI
         const detail = error.detail;
         const message =
           typeof detail === "string"
@@ -290,14 +198,11 @@ export function useUploadSubmission(projectId: string, taskId: string) {
       return res.json();
     },
     onSuccess: () => {
-      // Task status changed to SUBMITTED, new submission added
       queryClient.invalidateQueries({ queryKey: ["task-submissions", taskId] });
       queryClient.invalidateQueries({ queryKey: ["project-tasks", projectId] });
-      // Reset progress after successful upload
       setUploadProgress(0);
     },
     onError: () => {
-      // Reset progress on failure so the bar disappears
       setUploadProgress(0);
     },
   });
@@ -305,10 +210,6 @@ export function useUploadSubmission(projectId: string, taskId: string) {
   return { ...mutation, uploadProgress, resetProgress };
 }
 
-/**
- * Update solver's own profile (bio + skills).
- * PATCH /api/users/me/profile { bio?, skills? }
- */
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
 

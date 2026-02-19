@@ -1,24 +1,6 @@
 "use client";
 
-/**
- * Solver Project Detail Page — View project, bid, manage tasks, upload ZIPs.
- *
- * This page adapts based on project status and solver's relationship:
- *
- * OPEN project (not yet bid):
- *   → Show project info + bid form (cover letter textarea)
- *
- * OPEN project (already bid):
- *   → Show project info + "Bid submitted" message
- *
- * ASSIGNED project (solver is assigned):
- *   → Show project info + Tasks tab (create tasks, upload submissions)
- *
- * COMPLETED project:
- *   → Read-only view of all tasks and submissions
- *
- * URL: /solver/projects/[id]
- */
+// Solver project detail — view info, bid on OPEN projects, manage tasks on assigned ones
 
 import { use, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -72,10 +54,6 @@ import {
 import { ProjectState, TaskState, SubmissionState } from "@/types";
 import type { ProjectStatus, TaskStatus, SubmissionStatus, Task } from "@/types";
 
-// ============================================================
-// Status badge colors
-// ============================================================
-
 const PROJECT_STATUS_CLASS: Record<ProjectStatus, string> = {
   OPEN: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
   ASSIGNED: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
@@ -95,12 +73,8 @@ const SUBMISSION_STATUS_CLASS: Record<SubmissionStatus, string> = {
   REJECTED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
 };
 
-// ============================================================
-// Helpers
-// ============================================================
-
 const formatDate = (dateStr: string | null) => {
-  if (!dateStr) return "—";
+  if (!dateStr) return "\u2014";
   return new Date(dateStr).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
@@ -109,7 +83,7 @@ const formatDate = (dateStr: string | null) => {
 };
 
 const formatBudget = (budget: number | null) => {
-  if (budget === null || budget === undefined) return "—";
+  if (budget === null || budget === undefined) return "\u2014";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -122,10 +96,6 @@ const formatFileSize = (bytes: number) => {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
-
-// ============================================================
-// Main Page
-// ============================================================
 
 export default function SolverProjectDetailPage({
   params,
@@ -165,14 +135,12 @@ export default function SolverProjectDetailPage({
     );
   }
 
-  // Determine solver's relationship to this project
   const isAssigned = project.assigned_solver_id === user?.id;
   const isOpen = project.status === ProjectState.OPEN;
   const isCompleted = project.status === ProjectState.COMPLETED;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <Button
           variant="ghost"
@@ -194,24 +162,19 @@ export default function SolverProjectDetailPage({
           )}
         </div>
 
-        {/* Lifecycle stepper — visual progress through OPEN → ASSIGNED → COMPLETED */}
         <LifecycleStepper type="project" currentStatus={project.status} className="mt-4" />
       </div>
 
-      {/* Tabs — what's visible depends on project state */}
       <Tabs defaultValue={isAssigned ? "tasks" : "overview"}>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          {/* Show Tasks tab only when solver is assigned or project is completed */}
           {(isAssigned || isCompleted) && (
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
           )}
         </TabsList>
 
-        {/* Overview tab — project info + bid form (if OPEN) */}
         <TabsContent value="overview">
           <div className="space-y-6">
-            {/* Project details cards */}
             <div className="grid gap-4 md:grid-cols-2">
               <Card className="md:col-span-2">
                 <CardHeader>
@@ -245,14 +208,12 @@ export default function SolverProjectDetailPage({
               </Card>
             </div>
 
-            {/* Bid form — only if project is OPEN */}
             {isOpen && (
               <BidForm projectId={projectId} />
             )}
           </div>
         </TabsContent>
 
-        {/* Tasks tab — only for assigned solver or completed projects */}
         {(isAssigned || isCompleted) && (
           <TabsContent value="tasks">
             <SolverTasksTab
@@ -266,10 +227,6 @@ export default function SolverProjectDetailPage({
     </div>
   );
 }
-
-// ============================================================
-// Bid Form — submit a request to work on this project
-// ============================================================
 
 function BidForm({ projectId }: { projectId: string }) {
   const [coverLetter, setCoverLetter] = useState("");
@@ -288,14 +245,12 @@ function BidForm({ projectId }: { projectId: string }) {
       toast.success("Bid submitted! The buyer will review your request.");
       setSubmitted(true);
     } catch (error) {
-      // "already requested" → solver already bid on this project
       toast.error(
         error instanceof Error ? error.message : "Failed to submit bid"
       );
     }
   };
 
-  // After submitting, show a confirmation message instead of the form
   if (submitted) {
     return (
       <Card>
@@ -361,10 +316,6 @@ function BidForm({ projectId }: { projectId: string }) {
   );
 }
 
-// ============================================================
-// Solver Tasks Tab — create tasks + upload submissions
-// ============================================================
-
 function SolverTasksTab({
   projectId,
   isAssigned,
@@ -399,7 +350,6 @@ function SolverTasksTab({
 
   return (
     <div className="space-y-4">
-      {/* Create Task button — only for assigned solver on non-completed projects */}
       {isAssigned && !isCompleted && (
         <div className="flex justify-end">
           <Button
@@ -412,14 +362,12 @@ function SolverTasksTab({
         </div>
       )}
 
-      {/* Create Task Dialog */}
       <CreateTaskDialog
         projectId={projectId}
         open={showCreateForm}
         onOpenChange={setShowCreateForm}
       />
 
-      {/* Empty state */}
       {(!data || data.data.length === 0) && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <ClipboardList className="h-12 w-12 text-muted-foreground mb-4" />
@@ -432,7 +380,6 @@ function SolverTasksTab({
         </div>
       )}
 
-      {/* Task list — staggered entrance animation */}
       {data && data.data.length > 0 && (
         <AnimatedList className="space-y-4">
           {data.data.map((task) => (
@@ -450,10 +397,6 @@ function SolverTasksTab({
     </div>
   );
 }
-
-// ============================================================
-// Create Task Dialog
-// ============================================================
 
 function CreateTaskDialog({
   projectId,
@@ -483,7 +426,6 @@ function CreateTaskDialog({
         deadline: deadline ? new Date(deadline).toISOString() : null,
       });
       toast.success("Task created!");
-      // Reset form and close
       setTitle("");
       setDescription("");
       setDeadline("");
@@ -550,10 +492,6 @@ function CreateTaskDialog({
   );
 }
 
-// ============================================================
-// Solver Task Card — expandable with submissions + upload
-// ============================================================
-
 function SolverTaskCard({
   task,
   projectId,
@@ -568,7 +506,6 @@ function SolverTaskCard({
   const [expanded, setExpanded] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
-  // Can edit task when assigned, task is not COMPLETED, project is not COMPLETED
   const canEdit = isAssigned && !isCompleted && task.status !== TaskState.COMPLETED;
 
   return (
@@ -576,7 +513,6 @@ function SolverTaskCard({
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
-            {/* Left side — clickable to expand/collapse */}
             <button
               onClick={() => setExpanded(!expanded)}
               className="flex items-center gap-3 flex-1 text-left"
@@ -600,7 +536,6 @@ function SolverTaskCard({
               </div>
             </button>
 
-            {/* Right side — deadline + edit button */}
             <div className="flex items-center gap-2 flex-shrink-0 ml-4">
               {task.deadline && (
                 <span className="text-xs text-muted-foreground">
@@ -623,7 +558,6 @@ function SolverTaskCard({
             </div>
           </div>
 
-          {/* Smooth expand/collapse animation */}
           <AnimatePresence>
             {expanded && (
               <motion.div
@@ -647,7 +581,6 @@ function SolverTaskCard({
         </CardContent>
       </Card>
 
-      {/* Edit Task Dialog */}
       <EditTaskDialog
         task={task}
         projectId={projectId}
@@ -657,10 +590,6 @@ function SolverTaskCard({
     </>
   );
 }
-
-// ============================================================
-// Edit Task Dialog — update title, description, deadline
-// ============================================================
 
 function EditTaskDialog({
   task,
@@ -675,7 +604,6 @@ function EditTaskDialog({
 }) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
-  // Convert ISO deadline to YYYY-MM-DD for the date input
   const [deadline, setDeadline] = useState(
     task.deadline ? new Date(task.deadline).toISOString().split("T")[0] : ""
   );
@@ -758,10 +686,6 @@ function EditTaskDialog({
   );
 }
 
-// ============================================================
-// Solver Submissions Panel — view history + upload new ZIP
-// ============================================================
-
 function SolverSubmissionsPanel({
   taskId,
   taskStatus,
@@ -774,19 +698,12 @@ function SolverSubmissionsPanel({
   canUpload: boolean;
 }) {
   const { data, isLoading, isError, refetch } = useTaskSubmissions(taskId);
-  // Destructure uploadProgress from the hook — drives the progress bar UI
   const { uploadProgress, ...uploadSubmission } = useUploadSubmission(projectId, taskId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadNotes, setUploadNotes] = useState("");
   const [showUploadForm, setShowUploadForm] = useState(false);
 
-  /**
-   * Can upload a new submission when:
-   * - Solver is assigned (canUpload)
-   * - Task is IN_PROGRESS (no pending submission) or REVISION_REQUESTED (rework)
-   * - Task is NOT SUBMITTED (already has a PENDING_REVIEW submission)
-   * - Task is NOT COMPLETED (done)
-   */
+  // Can upload when task is IN_PROGRESS or REVISION_REQUESTED (not SUBMITTED or COMPLETED)
   const canSubmitZip =
     canUpload &&
     (taskStatus === TaskState.IN_PROGRESS || taskStatus === TaskState.REVISION_REQUESTED);
@@ -807,7 +724,6 @@ function SolverSubmissionsPanel({
       toast.success("Submission uploaded! The buyer will review it.");
       setUploadNotes("");
       setShowUploadForm(false);
-      // Reset file input
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       toast.error(
@@ -835,7 +751,6 @@ function SolverSubmissionsPanel({
 
   return (
     <div className="space-y-3 py-2">
-      {/* Upload button — show when solver can submit */}
       {canSubmitZip && !showUploadForm && (
         <Button
           size="sm"
@@ -847,7 +762,6 @@ function SolverSubmissionsPanel({
         </Button>
       )}
 
-      {/* Upload form — file picker + optional notes */}
       {showUploadForm && (
         <Card>
           <CardContent className="pt-4">
@@ -876,7 +790,6 @@ function SolverSubmissionsPanel({
                 />
               </div>
               <div className="space-y-3">
-                {/* Upload progress bar — shown while uploading */}
                 {uploadSubmission.isPending && (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
@@ -885,7 +798,6 @@ function SolverSubmissionsPanel({
                       </span>
                       <span className="font-medium">{uploadProgress}%</span>
                     </div>
-                    {/* Track background + animated fill bar */}
                     <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
                       <motion.div
                         className="h-full rounded-full bg-primary"
@@ -896,7 +808,7 @@ function SolverSubmissionsPanel({
                     </div>
                     {uploadProgress === 100 && (
                       <p className="text-xs text-muted-foreground">
-                        Upload complete — server is validating the ZIP...
+                        Upload complete -- server is validating the ZIP...
                       </p>
                     )}
                   </div>
@@ -937,7 +849,6 @@ function SolverSubmissionsPanel({
         </Card>
       )}
 
-      {/* Empty state */}
       {(!data || data.data.length === 0) && !showUploadForm && (
         <p className="text-sm text-muted-foreground text-center py-4">
           No submissions yet.
@@ -945,7 +856,7 @@ function SolverSubmissionsPanel({
         </p>
       )}
 
-      {/* Submission history (newest first) */}
+      {/* Submission history, newest first */}
       {data && data.data.map((submission, index) => (
         <div
           key={submission.id}
@@ -968,14 +879,12 @@ function SolverSubmissionsPanel({
                 )}
               </div>
 
-              {/* Solver's own notes */}
               {submission.notes && (
                 <p className="text-sm text-muted-foreground mt-1">
                   <span className="font-medium">Your notes:</span> {submission.notes}
                 </p>
               )}
 
-              {/* Buyer's feedback (shown when rejected — critical for rework) */}
               {submission.reviewer_notes && (
                 <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
                   <span className="font-medium">Buyer feedback:</span> {submission.reviewer_notes}
@@ -988,7 +897,6 @@ function SolverSubmissionsPanel({
               </p>
             </div>
 
-            {/* Status icon */}
             <div className="flex-shrink-0">
               {submission.status === SubmissionState.PENDING_REVIEW && (
                 <Clock className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />

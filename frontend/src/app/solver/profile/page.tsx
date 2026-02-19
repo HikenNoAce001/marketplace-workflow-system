@@ -1,21 +1,6 @@
 "use client";
 
-/**
- * Solver Profile Page — Edit bio and skills.
- *
- * PDF SPEC: Solver can update their profile (bio + skills list).
- * Buyers can see solver profiles when reviewing bids.
- *
- * FEATURES:
- * - Bio textarea (free-form text about the solver)
- * - Skills as comma-separated input → stored as string array
- * - Save button with loading state
- * - Success/error toast feedback
- *
- * DATA FLOW:
- * useMyProfile()        → GET /api/users/me/profile → pre-fill form
- * useUpdateProfile()    → PATCH /api/users/me/profile { bio, skills }
- */
+// Solver profile editor — bio and skills
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -34,27 +19,21 @@ export default function SolverProfilePage() {
   const { data: profile, isLoading, isError, refetch } = useMyProfile();
   const updateProfile = useUpdateProfile();
 
-  // Form state — initialized from profile data when it loads
   const [bio, setBio] = useState("");
   const [skillsInput, setSkillsInput] = useState("");
 
-  // Pre-fill form when profile data loads
+  // Pre-fill form when profile loads
   useEffect(() => {
     if (profile) {
       setBio(profile.bio || "");
-      // Convert skills array back to comma-separated string for editing
       setSkillsInput(profile.skills?.join(", ") || "");
     }
   }, [profile]);
 
-  /**
-   * Save profile changes.
-   * Converts comma-separated skills string → array of trimmed strings.
-   */
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Parse skills: split by comma, trim whitespace, remove empties
+    // Parse comma-separated skills
     const skills = skillsInput
       .split(",")
       .map((s) => s.trim())
@@ -73,7 +52,6 @@ export default function SolverProfilePage() {
     }
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
@@ -83,7 +61,6 @@ export default function SolverProfilePage() {
     );
   }
 
-  // Error state
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -98,7 +75,6 @@ export default function SolverProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <UserCircle className="h-6 w-6" />
@@ -109,14 +85,12 @@ export default function SolverProfilePage() {
         </p>
       </div>
 
-      {/* Profile info card (read-only) */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Account Info</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-3">
-            {/* Avatar circle */}
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-lg">
               {profile?.name.charAt(0).toUpperCase()}
             </div>
@@ -130,20 +104,18 @@ export default function SolverProfilePage() {
               {profile?.role}
             </Badge>
             <span className="text-xs text-muted-foreground">
-              Member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long" }) : "—"}
+              Member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long" }) : "\u2014"}
             </span>
           </div>
         </CardContent>
       </Card>
 
-      {/* Editable profile form */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Edit Profile</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSave} className="space-y-6">
-            {/* Bio */}
             <div className="space-y-2">
               <Label htmlFor="bio">Bio</Label>
               <Textarea
@@ -158,7 +130,6 @@ export default function SolverProfilePage() {
               </p>
             </div>
 
-            {/* Skills */}
             <div className="space-y-2">
               <Label htmlFor="skills">Skills</Label>
               <Input
@@ -170,7 +141,6 @@ export default function SolverProfilePage() {
               <p className="text-xs text-muted-foreground">
                 Comma-separated list. These help buyers find the right solver for their project.
               </p>
-              {/* Preview parsed skills as badges */}
               {skillsInput && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {skillsInput
@@ -186,7 +156,6 @@ export default function SolverProfilePage() {
               )}
             </div>
 
-            {/* Save button — tap micro-interaction */}
             <div className="flex justify-end">
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                 <Button

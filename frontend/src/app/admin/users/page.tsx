@@ -1,24 +1,6 @@
 "use client";
 
-/**
- * Admin Users Page — View all users and manage their roles.
- *
- * PDF SPEC FOR ADMIN:
- * 1. "Assign Buyer role to users" → role dropdown in table
- * 2. "View all users" → paginated user table
- * 3. "No project execution" → this page has no project actions
- *
- * FEATURES:
- * - Paginated table of all users (name, email, role, joined date)
- * - Role dropdown on each row to change SOLVER ↔ BUYER
- * - ADMIN rows show the badge but no dropdown (can't change admin role)
- * - Own row shows "(You)" indicator and no dropdown
- * - 3 states: loading skeleton, error with retry, empty state
- *
- * DATA FLOW:
- * useUsers(page) → GET /api/users?page=N → renders table
- * useUpdateRole().mutate() → PATCH /api/users/{id}/role → invalidates cache → table refreshes
- */
+// Admin user management — view all users, change roles (SOLVER <-> BUYER)
 
 import { useState } from "react";
 import { useUsers, useUpdateRole } from "@/hooks/use-users";
@@ -47,9 +29,6 @@ import { Users, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { Role } from "@/types";
 import type { UserRole } from "@/types";
 
-/**
- * Role badge colors — same as everywhere else in the app.
- */
 const ROLE_BADGE_CLASS: Record<UserRole, string> = {
   ADMIN: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
   BUYER: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
@@ -62,10 +41,6 @@ export default function AdminUsersPage() {
   const { data, isLoading, isError, refetch } = useUsers(page);
   const updateRole = useUpdateRole();
 
-  /**
-   * Handle role change from the dropdown.
-   * Calls PATCH /api/users/{id}/role and shows a toast on success/failure.
-   */
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     try {
       await updateRole.mutateAsync({ userId, role: newRole });
@@ -77,7 +52,6 @@ export default function AdminUsersPage() {
     }
   };
 
-  // Format ISO date string to readable format
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
       year: "numeric",
@@ -88,7 +62,6 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Users className="h-6 w-6" />
@@ -99,9 +72,6 @@ export default function AdminUsersPage() {
         </p>
       </div>
 
-      {/* ============================================ */}
-      {/* STATE: Loading — show skeleton rows          */}
-      {/* ============================================ */}
       {isLoading && (
         <div className="rounded-lg border">
           <Table>
@@ -114,7 +84,6 @@ export default function AdminUsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {/* Render 5 skeleton rows to indicate loading */}
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-4 w-32" /></TableCell>
@@ -128,9 +97,6 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* ============================================ */}
-      {/* STATE: Error — show message with retry       */}
-      {/* ============================================ */}
       {isError && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <AlertCircle className="h-12 w-12 text-destructive mb-4" />
@@ -144,9 +110,6 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* ============================================ */}
-      {/* STATE: Empty — no users found                */}
-      {/* ============================================ */}
       {data && data.data.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <Users className="h-12 w-12 text-muted-foreground mb-4" />
@@ -157,9 +120,6 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* ============================================ */}
-      {/* STATE: Data loaded — show user table          */}
-      {/* ============================================ */}
       {data && data.data.length > 0 && (
         <>
           <div className="rounded-lg border">
@@ -172,19 +132,14 @@ export default function AdminUsersPage() {
                   <TableHead>Joined</TableHead>
                 </TableRow>
               </TableHeader>
-              {/* AnimatedTableBody staggers each row's entrance */}
               <AnimatedTableBody className="[&_tr:last-child]:border-0">
                 {data.data.map((user) => {
-                  // Check if this row is the current admin user
                   const isCurrentUser = currentUser?.id === user.id;
-                  // Admins can't have their role changed (seeded only)
                   const isAdmin = user.role === Role.ADMIN;
-                  // Can only change role if it's not the current user and not an admin
                   const canChangeRole = !isCurrentUser && !isAdmin;
 
                   return (
                     <AnimatedTableRow key={user.id}>
-                      {/* Name column — shows "(You)" for current user */}
                       <TableCell className="font-medium">
                         {user.name}
                         {isCurrentUser && (
@@ -192,15 +147,12 @@ export default function AdminUsersPage() {
                         )}
                       </TableCell>
 
-                      {/* Email column */}
                       <TableCell className="text-muted-foreground">
                         {user.email}
                       </TableCell>
 
-                      {/* Role column — dropdown or static badge */}
                       <TableCell>
                         {canChangeRole ? (
-                          // Editable dropdown for non-admin, non-self users
                           <Select
                             value={user.role}
                             onValueChange={(value) =>
@@ -217,7 +169,6 @@ export default function AdminUsersPage() {
                             </SelectContent>
                           </Select>
                         ) : (
-                          // Static badge for admins and self
                           <Badge
                             variant="outline"
                             className={ROLE_BADGE_CLASS[user.role as UserRole]}
@@ -227,7 +178,6 @@ export default function AdminUsersPage() {
                         )}
                       </TableCell>
 
-                      {/* Joined date column */}
                       <TableCell className="text-muted-foreground">
                         {formatDate(user.created_at)}
                       </TableCell>
@@ -238,7 +188,6 @@ export default function AdminUsersPage() {
             </Table>
           </div>
 
-          {/* Pagination controls */}
           {data.meta.total_pages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">

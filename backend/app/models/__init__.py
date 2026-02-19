@@ -1,4 +1,4 @@
-# Import all models here so Alembic autogenerate can detect them.
+# all models imported here for Alembic autogenerate
 from app.models.user import User, UserRole  # noqa: F401
 from app.models.project import Project, ProjectStatus  # noqa: F401
 from app.models.request import ProjectRequest, RequestStatus  # noqa: F401

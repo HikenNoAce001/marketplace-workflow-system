@@ -35,7 +35,10 @@ ARG NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 # Build the production app (generates .next/ folder)
-RUN npm run build
+# --no-turbopack: Alpine on ARM64 falls back to WASM bindings which don't support Turbopack.
+# Webpack works fine with WASM, so we disable Turbopack for Docker builds only.
+# Local dev (`next dev`) still uses Turbopack automatically.
+RUN npx next build --no-turbopack
 
 # --- Stage 3: Run the production app ---
 FROM node:22-alpine AS runner

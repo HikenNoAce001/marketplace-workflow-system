@@ -1,10 +1,5 @@
 import Link from "next/link";
 
-/**
- * Landing page — the first thing users see at "/".
- * Clean, centered layout with a CTA to get started.
- * Redirects to the login page where users can sign in.
- */
 export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background">

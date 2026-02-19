@@ -8,10 +8,6 @@ class TokenResponse(SQLModel):
     token_type: str = "bearer"
 
 
-class AuthURLResponse(SQLModel):
-    url: str
-
-
 class UserRead(SQLModel):
     id: UUID
     email: str

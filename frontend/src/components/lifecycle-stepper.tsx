@@ -1,35 +1,11 @@
 "use client";
 
-/**
- * LifecycleStepper — Visual progress indicator for state machines.
- *
- * Shows the current step in a multi-step workflow as connected circles
- * with an animated progress line. Two variants:
- *
- * PROJECT:  OPEN ──→ ASSIGNED ──→ COMPLETED
- * TASK:     IN_PROGRESS ──→ SUBMITTED ──→ COMPLETED
- *           (with REVISION_REQUESTED shown as a rework indicator)
- *
- * WHY THIS COMPONENT?
- * The PDF spec requires "step-by-step project lifecycle visualization."
- * This stepper gives users an instant visual understanding of where
- * a project or task is in its lifecycle — no need to read status text.
- *
- * ANIMATION DETAILS:
- * - Progress line animates from left to right on mount (600ms)
- * - Active step circle pulses subtly to draw attention
- * - Completed steps show a checkmark with scale-in animation
- * - Uses Framer Motion for smooth, GPU-accelerated transitions
- */
+// Visual progress indicator for project/task state machines
 
 import { motion } from "framer-motion";
 import { Check, RotateCcw } from "lucide-react";
 import { ProjectState, TaskState } from "@/types";
 import type { ProjectStatus, TaskStatus } from "@/types";
-
-// ============================================================
-// Step definitions for each state machine
-// ============================================================
 
 interface Step {
   label: string;
@@ -48,44 +24,31 @@ const TASK_STEPS: Step[] = [
   { label: "Completed", status: TaskState.COMPLETED },
 ];
 
-// ============================================================
-// Props
-// ============================================================
-
 interface LifecycleStepperProps {
-  /** Which state machine to visualize */
   type: "project" | "task";
-  /** Current status value (e.g., "OPEN", "IN_PROGRESS") */
   currentStatus: ProjectStatus | TaskStatus;
-  /** Optional CSS class for the wrapper */
   className?: string;
 }
-
-// ============================================================
-// Component
-// ============================================================
 
 export function LifecycleStepper({ type, currentStatus, className = "" }: LifecycleStepperProps) {
   const steps = type === "project" ? PROJECT_STEPS : TASK_STEPS;
 
-  // Find the index of the current step (0-based)
   // REVISION_REQUESTED maps back to step 0 (rework cycle)
   const isRevisionRequested = currentStatus === TaskState.REVISION_REQUESTED;
   const currentIndex = isRevisionRequested
-    ? 0 // Back to "In Progress" conceptually
+    ? 0
     : steps.findIndex((s) => s.status === currentStatus);
 
   return (
     <div className={`flex items-center gap-0 ${className}`}>
       {steps.map((step, index) => {
-        // Determine step state relative to current position
-        const isCompleted = index < currentIndex;
-        const isCurrent = index === currentIndex;
+        const isLastStep = currentIndex === steps.length - 1;
+        const isCompleted = index < currentIndex || (isLastStep && index === currentIndex);
+        const isCurrent = index === currentIndex && !isLastStep;
         const isPending = index > currentIndex;
 
         return (
           <div key={step.status} className="flex items-center">
-            {/* Step circle + label */}
             <div className="flex flex-col items-center">
               <motion.div
                 className={`
@@ -98,12 +61,10 @@ export function LifecycleStepper({ type, currentStatus, className = "" }: Lifecy
                       : "bg-muted border-muted-foreground/30 text-muted-foreground"
                   }
                 `}
-                // Scale-in animation on mount
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
               >
-                {/* Completed steps show a checkmark */}
                 {isCompleted ? (
                   <motion.div
                     initial={{ scale: 0 }}
@@ -116,7 +77,7 @@ export function LifecycleStepper({ type, currentStatus, className = "" }: Lifecy
                   <span>{index + 1}</span>
                 )}
 
-                {/* Pulse ring on current step — draws attention */}
+                {/* Pulse on current step */}
                 {isCurrent && (
                   <motion.div
                     className="absolute inset-0 rounded-full border-2 border-primary"
@@ -126,7 +87,6 @@ export function LifecycleStepper({ type, currentStatus, className = "" }: Lifecy
                 )}
               </motion.div>
 
-              {/* Step label below the circle */}
               <motion.span
                 className={`
                   mt-1.5 text-[11px] font-medium whitespace-nowrap
@@ -140,10 +100,9 @@ export function LifecycleStepper({ type, currentStatus, className = "" }: Lifecy
               </motion.span>
             </div>
 
-            {/* Connecting line between steps (not after the last step) */}
+            {/* Connecting line between steps */}
             {index < steps.length - 1 && (
               <div className="relative mx-2 h-0.5 w-12 bg-muted-foreground/20 rounded overflow-hidden">
-                {/* Animated fill — shows progress through the workflow */}
                 <motion.div
                   className={`absolute inset-y-0 left-0 rounded ${
                     isCompleted ? "bg-green-500 dark:bg-green-600" : isCurrent ? "bg-primary" : ""
@@ -160,7 +119,7 @@ export function LifecycleStepper({ type, currentStatus, className = "" }: Lifecy
         );
       })}
 
-      {/* Revision Requested indicator — shown as a rework loop badge */}
+      {/* Revision requested indicator */}
       {isRevisionRequested && (
         <motion.div
           className="ml-3 flex items-center gap-1.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800 px-2.5 py-1"
