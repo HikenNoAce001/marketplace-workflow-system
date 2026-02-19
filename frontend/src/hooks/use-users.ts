@@ -39,6 +39,10 @@ export function useUsers(page: number = 1, limit: number = 20) {
       if (!res.ok) throw new Error("Failed to fetch users");
       return res.json();
     },
+
+    // Poll every 15s — admin user list changes infrequently
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
   });
 }
 

@@ -73,6 +73,10 @@ export function useProject(projectId: string) {
 
     // Don't fetch if we don't have an ID yet (e.g., during page load)
     enabled: !!projectId,
+
+    // Poll every 5s for real-time cross-user updates (e.g., solver creates tasks)
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false, // Pause polling when tab is hidden
   });
 }
 
@@ -99,6 +103,10 @@ export function useProjectRequests(projectId: string, page: number = 1) {
     },
 
     enabled: !!projectId,
+
+    // Poll for new bids from solvers
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -122,6 +130,10 @@ export function useProjectTasks(projectId: string, page: number = 1) {
     },
 
     enabled: !!projectId,
+
+    // Poll for new tasks created by solver
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -143,6 +155,10 @@ export function useTaskSubmissions(taskId: string) {
     },
 
     enabled: !!taskId,
+
+    // Poll for new submissions from solver
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
   });
 }
 

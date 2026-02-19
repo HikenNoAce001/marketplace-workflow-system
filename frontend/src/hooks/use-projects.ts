@@ -41,5 +41,9 @@ export function useProjects(page: number = 1, limit: number = 20) {
       if (!res.ok) throw new Error("Failed to fetch projects");
       return res.json();
     },
+
+    // Poll every 15s on list pages — less frequent since lists change slowly
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
   });
 }

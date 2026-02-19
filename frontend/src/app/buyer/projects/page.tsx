@@ -49,9 +49,9 @@ import type { ProjectStatus } from "@/types";
  * OPEN = accepting bids, ASSIGNED = solver working, COMPLETED = all done.
  */
 const STATUS_BADGE_CLASS: Record<ProjectStatus, string> = {
-  OPEN: "bg-blue-100 text-blue-700 border-blue-200",
-  ASSIGNED: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  COMPLETED: "bg-green-100 text-green-700 border-green-200",
+  OPEN: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  ASSIGNED: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+  COMPLETED: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
 };
 
 export default function BuyerProjectsPage() {

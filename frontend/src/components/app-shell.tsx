@@ -34,7 +34,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +48,7 @@ import {
   FileText,
   UserCircle,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import type { UserRole } from "@/types";
 
 /**
@@ -75,9 +76,9 @@ const NAV_ITEMS: Record<UserRole, { label: string; href: string; icon: React.Ele
  * Same colors used on login page, dashboard, and here.
  */
 const ROLE_BADGE_CLASS: Record<UserRole, string> = {
-  ADMIN: "bg-red-100 text-red-700 border-red-200",
-  BUYER: "bg-blue-100 text-blue-700 border-blue-200",
-  SOLVER: "bg-green-100 text-green-700 border-green-200",
+  ADMIN: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+  BUYER: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  SOLVER: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
 };
 
 /**
@@ -199,29 +200,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Badge>
           </motion.div>
 
-          {/* Right side: logout button with tap micro-interaction */}
-          <motion.div whileTap={{ scale: 0.97 }}>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={logout}
-              className="gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
-          </motion.div>
+          {/* Right side: theme toggle + logout */}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <motion.div whileTap={{ scale: 0.97 }}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={logout}
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
+            </motion.div>
+          </div>
         </header>
 
-        {/* CONTENT AREA — where the actual page renders */}
+        {/* CONTENT AREA — animated page transitions on route change */}
         <main className="flex-1 overflow-y-auto p-6">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {children}
-          </motion.div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>

@@ -27,6 +27,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Shield, ShoppingCart, Wrench } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 /**
  * Test users created by the seed script — grouped by role.
@@ -38,71 +39,71 @@ const TEST_USERS = [
     name: "Sarah Chen",
     role: Role.ADMIN,
     icon: Shield,
-    badgeClass: "bg-red-100 text-red-700 border-red-200",
+    badgeClass: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
   },
   {
     email: "admin2@test.com",
     name: "Marcus Johnson",
     role: Role.ADMIN,
     icon: Shield,
-    badgeClass: "bg-red-100 text-red-700 border-red-200",
+    badgeClass: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
   },
   {
     email: "buyer@test.com",
     name: "Emily Rodriguez",
     role: Role.BUYER,
     icon: ShoppingCart,
-    badgeClass: "bg-blue-100 text-blue-700 border-blue-200",
+    badgeClass: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
   },
   {
     email: "buyer2@test.com",
     name: "James Park",
     role: Role.BUYER,
     icon: ShoppingCart,
-    badgeClass: "bg-blue-100 text-blue-700 border-blue-200",
+    badgeClass: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
   },
   {
     email: "buyer3@test.com",
     name: "Aisha Patel",
     role: Role.BUYER,
     icon: ShoppingCart,
-    badgeClass: "bg-blue-100 text-blue-700 border-blue-200",
+    badgeClass: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
   },
   {
     email: "solver@test.com",
     name: "Alex Thompson",
     role: Role.SOLVER,
     icon: Wrench,
-    badgeClass: "bg-green-100 text-green-700 border-green-200",
+    badgeClass: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
   },
   {
     email: "solver2@test.com",
     name: "Priya Sharma",
     role: Role.SOLVER,
     icon: Wrench,
-    badgeClass: "bg-green-100 text-green-700 border-green-200",
+    badgeClass: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
   },
   {
     email: "solver3@test.com",
     name: "David Kim",
     role: Role.SOLVER,
     icon: Wrench,
-    badgeClass: "bg-green-100 text-green-700 border-green-200",
+    badgeClass: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
   },
   {
     email: "solver4@test.com",
     name: "Lisa Wang",
     role: Role.SOLVER,
     icon: Wrench,
-    badgeClass: "bg-green-100 text-green-700 border-green-200",
+    badgeClass: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
   },
 ];
 
 // Group users by role for organized display
 const ROLE_GROUPS = [
-  { role: Role.ADMIN, label: "Admins", description: "Manage user roles, view all projects" },
-  { role: Role.BUYER, label: "Buyers", description: "Create projects, review submissions" },
-  { role: Role.SOLVER, label: "Problem Solvers", description: "Browse projects, bid, submit work" },
+  { role: Role.ADMIN, label: "Sign in as Admin", description: "Manage user roles, view all projects" },
+  { role: Role.BUYER, label: "Sign in as Buyer", description: "Create projects, review submissions" },
+  { role: Role.SOLVER, label: "Sign in as Solver", description: "Browse projects, bid, submit work" },
 ];
 
 export default function LoginPage() {
@@ -129,7 +130,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
+    <div className="relative flex min-h-screen items-center justify-center bg-background px-4 py-8">
+      {/* Theme toggle in top-right — available before login */}
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

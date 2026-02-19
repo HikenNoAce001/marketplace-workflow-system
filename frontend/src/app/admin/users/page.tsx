@@ -51,9 +51,9 @@ import type { UserRole } from "@/types";
  * Role badge colors — same as everywhere else in the app.
  */
 const ROLE_BADGE_CLASS: Record<UserRole, string> = {
-  ADMIN: "bg-red-100 text-red-700 border-red-200",
-  BUYER: "bg-blue-100 text-blue-700 border-blue-200",
-  SOLVER: "bg-green-100 text-green-700 border-green-200",
+  ADMIN: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+  BUYER: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  SOLVER: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
 };
 
 export default function AdminUsersPage() {

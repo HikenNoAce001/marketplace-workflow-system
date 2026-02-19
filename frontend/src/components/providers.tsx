@@ -14,19 +14,23 @@
  * while the interactive parts run on the client.
  *
  * WHAT'S PROVIDED:
- * 1. QueryClientProvider — TanStack Query's cache and state manager
+ * 1. ThemeProvider — next-themes dark/light mode toggle
+ *    Adds/removes .dark class on <html>, which triggers CSS variable swap
+ * 2. QueryClientProvider — TanStack Query's cache and state manager
  *    Handles all API calls: caching, refetching, loading/error states
- * 2. AuthProvider — checks for existing session on app load
+ * 3. AuthProvider — checks for existing session on app load
  *    (restores login from refresh cookie if available)
- * 3. Toaster — sonner toast notifications (success/error messages)
+ * 4. Toaster — sonner toast notifications (success/error messages)
  *
  * NESTING ORDER MATTERS:
- * QueryClient → AuthProvider → children → Toaster
+ * ThemeProvider → QueryClient → AuthProvider → children → Toaster
+ * ThemeProvider is outermost so everything (including toasts) gets the theme.
  * AuthProvider needs QueryClient above it (for API calls),
  * and children need AuthProvider above them (for user state).
  */
 
 import { useState } from "react";
+import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/components/auth-provider";
@@ -56,13 +60,20 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {/* AuthProvider checks for existing session on app load */}
-      <AuthProvider>
-        {children}
-      </AuthProvider>
-      {/* Toaster renders toast notifications at bottom-right */}
-      <Toaster position="bottom-right" richColors closeButton />
-    </QueryClientProvider>
+    <ThemeProvider
+      attribute="class"       // Adds .dark class to <html> — matches our CSS .dark {} selector
+      defaultTheme="system"   // Respects OS preference on first visit
+      enableSystem            // Tracks OS theme changes in real time
+      disableTransitionOnChange // Prevents flash during theme switch
+    >
+      <QueryClientProvider client={queryClient}>
+        {/* AuthProvider checks for existing session on app load */}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+        {/* Toaster renders toast notifications at bottom-right */}
+        <Toaster position="bottom-right" richColors closeButton />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

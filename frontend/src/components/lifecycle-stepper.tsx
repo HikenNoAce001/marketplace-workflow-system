@@ -92,7 +92,7 @@ export function LifecycleStepper({ type, currentStatus, className = "" }: Lifecy
                   relative flex h-8 w-8 items-center justify-center rounded-full
                   text-xs font-semibold border-2 transition-colors
                   ${isCompleted
-                    ? "bg-green-500 border-green-500 text-white"
+                    ? "bg-green-500 border-green-500 text-white dark:bg-green-600 dark:border-green-600"
                     : isCurrent
                       ? "bg-primary border-primary text-primary-foreground"
                       : "bg-muted border-muted-foreground/30 text-muted-foreground"
@@ -130,7 +130,7 @@ export function LifecycleStepper({ type, currentStatus, className = "" }: Lifecy
               <motion.span
                 className={`
                   mt-1.5 text-[11px] font-medium whitespace-nowrap
-                  ${isCurrent ? "text-primary" : isCompleted ? "text-green-600" : "text-muted-foreground"}
+                  ${isCurrent ? "text-primary" : isCompleted ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}
                 `}
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -146,7 +146,7 @@ export function LifecycleStepper({ type, currentStatus, className = "" }: Lifecy
                 {/* Animated fill — shows progress through the workflow */}
                 <motion.div
                   className={`absolute inset-y-0 left-0 rounded ${
-                    isCompleted ? "bg-green-500" : isCurrent ? "bg-primary" : ""
+                    isCompleted ? "bg-green-500 dark:bg-green-600" : isCurrent ? "bg-primary" : ""
                   }`}
                   initial={{ width: "0%" }}
                   animate={{
@@ -163,7 +163,7 @@ export function LifecycleStepper({ type, currentStatus, className = "" }: Lifecy
       {/* Revision Requested indicator — shown as a rework loop badge */}
       {isRevisionRequested && (
         <motion.div
-          className="ml-3 flex items-center gap-1.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200 px-2.5 py-1"
+          className="ml-3 flex items-center gap-1.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800 px-2.5 py-1"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 400, damping: 25 }}

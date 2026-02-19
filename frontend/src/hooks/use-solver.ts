@@ -57,6 +57,10 @@ export function useProject(projectId: string) {
       return res.json();
     },
     enabled: !!projectId,
+
+    // Poll every 5s — buyer might accept bid or change project status
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -75,6 +79,10 @@ export function useProjectTasks(projectId: string, page: number = 1) {
       return res.json();
     },
     enabled: !!projectId,
+
+    // Poll for task status changes (buyer accepted/rejected submission)
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -91,6 +99,10 @@ export function useTaskSubmissions(taskId: string) {
       return res.json();
     },
     enabled: !!taskId,
+
+    // Poll for submission review results (accepted/rejected by buyer)
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -106,6 +118,10 @@ export function useMyRequests(page: number = 1) {
       if (!res.ok) throw new Error("Failed to fetch requests");
       return res.json();
     },
+
+    // Poll every 10s — bid statuses change when buyer accepts/rejects
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
   });
 }
 

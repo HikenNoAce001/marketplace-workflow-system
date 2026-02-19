@@ -28,6 +28,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { LifecycleStepper } from "@/components/lifecycle-stepper";
 import { AnimatedList, AnimatedListItem } from "@/components/animated-list";
+import { AnimatedBadge } from "@/components/animated-badge";
 import {
   useProject,
   useProjectRequests,
@@ -77,28 +78,28 @@ import type { ProjectStatus, RequestStatus, TaskStatus, SubmissionStatus, Task }
 // ============================================================
 
 const PROJECT_STATUS_CLASS: Record<ProjectStatus, string> = {
-  OPEN: "bg-blue-100 text-blue-700 border-blue-200",
-  ASSIGNED: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  COMPLETED: "bg-green-100 text-green-700 border-green-200",
+  OPEN: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  ASSIGNED: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+  COMPLETED: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
 };
 
 const REQUEST_STATUS_CLASS: Record<RequestStatus, string> = {
-  PENDING: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  ACCEPTED: "bg-green-100 text-green-700 border-green-200",
-  REJECTED: "bg-red-100 text-red-700 border-red-200",
+  PENDING: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+  ACCEPTED: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+  REJECTED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
 };
 
 const TASK_STATUS_CLASS: Record<TaskStatus, string> = {
-  IN_PROGRESS: "bg-blue-100 text-blue-700 border-blue-200",
-  SUBMITTED: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  COMPLETED: "bg-green-100 text-green-700 border-green-200",
-  REVISION_REQUESTED: "bg-orange-100 text-orange-700 border-orange-200",
+  IN_PROGRESS: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  SUBMITTED: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+  COMPLETED: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+  REVISION_REQUESTED: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
 };
 
 const SUBMISSION_STATUS_CLASS: Record<SubmissionStatus, string> = {
-  PENDING_REVIEW: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  ACCEPTED: "bg-green-100 text-green-700 border-green-200",
-  REJECTED: "bg-red-100 text-red-700 border-red-200",
+  PENDING_REVIEW: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+  ACCEPTED: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+  REJECTED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
 };
 
 // ============================================================
@@ -193,12 +194,10 @@ export default function BuyerProjectDetailPage({
 
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">{project.title}</h1>
-          <Badge
-            variant="outline"
+          <AnimatedBadge
+            status={project.status}
             className={PROJECT_STATUS_CLASS[project.status]}
-          >
-            {project.status}
-          </Badge>
+          />
         </div>
 
         {/* Lifecycle stepper — visual progress through OPEN → ASSIGNED → COMPLETED */}
@@ -403,12 +402,10 @@ function RequestsTab({
                     <span className="text-sm font-medium">
                       Solver: {request.solver_id.slice(0, 8)}...
                     </span>
-                    <Badge
-                      variant="outline"
+                    <AnimatedBadge
+                      status={request.status}
                       className={REQUEST_STATUS_CLASS[request.status]}
-                    >
-                      {request.status}
-                    </Badge>
+                    />
                   </div>
                   {/* Cover letter — what the solver pitched */}
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap">
@@ -426,7 +423,7 @@ function RequestsTab({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="gap-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950"
                         onClick={() => handleReject(request.id)}
                         disabled={rejectRequest.isPending || acceptRequest.isPending}
                       >
@@ -547,12 +544,10 @@ function TaskCard({ task, projectId }: { task: Task; projectId: string }) {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-medium">{task.title}</span>
-                <Badge
-                  variant="outline"
+                <AnimatedBadge
+                  status={task.status}
                   className={TASK_STATUS_CLASS[task.status]}
-                >
-                  {task.status.replace("_", " ")}
-                </Badge>
+                />
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 {task.description}
@@ -718,12 +713,10 @@ function SubmissionsPanel({
                   <span className="text-xs text-muted-foreground">
                     ({formatFileSize(submission.file_size)})
                   </span>
-                  <Badge
-                    variant="outline"
+                  <AnimatedBadge
+                    status={submission.status}
                     className={SUBMISSION_STATUS_CLASS[submission.status]}
-                  >
-                    {submission.status.replace("_", " ")}
-                  </Badge>
+                  />
                   {/* Mark the latest submission */}
                   {index === 0 && (
                     <Badge variant="secondary" className="text-xs">
@@ -741,7 +734,7 @@ function SubmissionsPanel({
 
                 {/* Reviewer's feedback (if rejected) */}
                 {submission.reviewer_notes && (
-                  <p className="text-sm text-orange-600 mt-1">
+                  <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
                     <span className="font-medium">Feedback:</span> {submission.reviewer_notes}
                   </p>
                 )}
@@ -771,7 +764,7 @@ function SubmissionsPanel({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="gap-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950"
                       onClick={() => openRejectDialog(submission.id)}
                       disabled={rejectSubmission.isPending || acceptSubmission.isPending}
                     >

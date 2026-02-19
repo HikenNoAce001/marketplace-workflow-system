@@ -25,6 +25,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { LifecycleStepper } from "@/components/lifecycle-stepper";
 import { AnimatedList, AnimatedListItem } from "@/components/animated-list";
+import { AnimatedBadge } from "@/components/animated-badge";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useProject,
@@ -76,22 +77,22 @@ import type { ProjectStatus, TaskStatus, SubmissionStatus, Task } from "@/types"
 // ============================================================
 
 const PROJECT_STATUS_CLASS: Record<ProjectStatus, string> = {
-  OPEN: "bg-blue-100 text-blue-700 border-blue-200",
-  ASSIGNED: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  COMPLETED: "bg-green-100 text-green-700 border-green-200",
+  OPEN: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  ASSIGNED: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+  COMPLETED: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
 };
 
 const TASK_STATUS_CLASS: Record<TaskStatus, string> = {
-  IN_PROGRESS: "bg-blue-100 text-blue-700 border-blue-200",
-  SUBMITTED: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  COMPLETED: "bg-green-100 text-green-700 border-green-200",
-  REVISION_REQUESTED: "bg-orange-100 text-orange-700 border-orange-200",
+  IN_PROGRESS: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  SUBMITTED: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+  COMPLETED: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+  REVISION_REQUESTED: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
 };
 
 const SUBMISSION_STATUS_CLASS: Record<SubmissionStatus, string> = {
-  PENDING_REVIEW: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  ACCEPTED: "bg-green-100 text-green-700 border-green-200",
-  REJECTED: "bg-red-100 text-red-700 border-red-200",
+  PENDING_REVIEW: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+  ACCEPTED: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+  REJECTED: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
 };
 
 // ============================================================
@@ -184,9 +185,10 @@ export default function SolverProjectDetailPage({
 
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">{project.title}</h1>
-          <Badge variant="outline" className={PROJECT_STATUS_CLASS[project.status]}>
-            {project.status}
-          </Badge>
+          <AnimatedBadge
+            status={project.status}
+            className={PROJECT_STATUS_CLASS[project.status]}
+          />
           {isAssigned && (
             <Badge variant="secondary">You&apos;re assigned</Badge>
           )}
@@ -298,7 +300,7 @@ function BidForm({ projectId }: { projectId: string }) {
     return (
       <Card>
         <CardContent className="flex items-center gap-3 pt-6">
-          <CheckCircle className="h-5 w-5 text-green-600" />
+          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
           <div>
             <p className="font-medium">Bid submitted!</p>
             <p className="text-sm text-muted-foreground">
@@ -587,9 +589,10 @@ function SolverTaskCard({
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{task.title}</span>
-                  <Badge variant="outline" className={TASK_STATUS_CLASS[task.status]}>
-                    {task.status.replace("_", " ")}
-                  </Badge>
+                  <AnimatedBadge
+                    status={task.status}
+                    className={TASK_STATUS_CLASS[task.status]}
+                  />
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
                   {task.description}
@@ -956,12 +959,10 @@ function SolverSubmissionsPanel({
                 <span className="text-xs text-muted-foreground">
                   ({formatFileSize(submission.file_size)})
                 </span>
-                <Badge
-                  variant="outline"
+                <AnimatedBadge
+                  status={submission.status}
                   className={SUBMISSION_STATUS_CLASS[submission.status]}
-                >
-                  {submission.status.replace("_", " ")}
-                </Badge>
+                />
                 {index === 0 && (
                   <Badge variant="secondary" className="text-xs">Latest</Badge>
                 )}
@@ -976,7 +977,7 @@ function SolverSubmissionsPanel({
 
               {/* Buyer's feedback (shown when rejected — critical for rework) */}
               {submission.reviewer_notes && (
-                <p className="text-sm text-orange-600 mt-1">
+                <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
                   <span className="font-medium">Buyer feedback:</span> {submission.reviewer_notes}
                 </p>
               )}
@@ -990,13 +991,13 @@ function SolverSubmissionsPanel({
             {/* Status icon */}
             <div className="flex-shrink-0">
               {submission.status === SubmissionState.PENDING_REVIEW && (
-                <Clock className="h-5 w-5 text-yellow-500" />
+                <Clock className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
               )}
               {submission.status === SubmissionState.ACCEPTED && (
-                <CheckCircle className="h-5 w-5 text-green-500" />
+                <CheckCircle className="h-5 w-5 text-green-500 dark:text-green-400" />
               )}
               {submission.status === SubmissionState.REJECTED && (
-                <AlertCircle className="h-5 w-5 text-red-500" />
+                <AlertCircle className="h-5 w-5 text-red-500 dark:text-red-400" />
               )}
             </div>
           </div>
