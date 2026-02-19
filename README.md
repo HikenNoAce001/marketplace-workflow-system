@@ -93,28 +93,25 @@ All tasks accepted ──► Project auto-completes (COMPLETED)
 - Node.js 20.9+ (for local frontend dev)
 - Python 3.12+ (optional, for running outside Docker)
 
-### Quick Start
+### Quick Start (one command)
 
 ```bash
-# 1. Clone the repo
 git clone https://github.com/YOUR_USERNAME/project-workflow-system.git
 cd project-workflow-system
+./setup.sh
+```
 
-# 2. Create .env from the example
+This single script handles everything: environment setup, Docker build, database migrations, test user seeding, frontend dependency install, and starts the dev server.
+
+### Manual Setup (step by step)
+
+```bash
 cp .env.example .env
-
-# 3. Start all services (PostgreSQL, MinIO, backend)
-make up
-
-# 4. Run database migrations
-make migrate
-
-# 5. Seed test users
-make seed
-
-# 6. Start frontend dev server
+docker compose up --build -d    # PostgreSQL, MinIO, Backend
 cd frontend && npm install && npm run dev
 ```
+
+The backend container automatically runs migrations and seeds test users on startup.
 
 The app will be running at:
 

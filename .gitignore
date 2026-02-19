@@ -1,14 +1,7 @@
-# =============================================
-# Root .gitignore — covers backend + frontend
-# =============================================
-
-# --- Environment & secrets (NEVER commit these) ---
 .env
 .env.local
 .env.production
-# .env.example IS committed (safe template for other devs)
 
-# --- Python / Backend ---
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -17,22 +10,18 @@ build/
 .venv/
 venv/
 
-# --- Node / Frontend ---
 node_modules/
 
-# --- OS junk ---
 .DS_Store
 Thumbs.db
 
-# --- IDE ---
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# --- Docker (local volumes) ---
 postgres_data/
 minio_data/
 
-# --- Claude Code ---
 .claude/
+PROGRESS.md

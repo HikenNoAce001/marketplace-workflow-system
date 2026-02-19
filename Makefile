@@ -36,8 +36,6 @@ health:
 test-flow:
 	docker compose exec backend python -m scripts.test_workflow
 
-# ---- Frontend commands (run locally for fast hot reload) ----
-
 front:
 	cd frontend && npm run dev
 
