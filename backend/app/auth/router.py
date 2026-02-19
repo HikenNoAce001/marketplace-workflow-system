@@ -231,6 +231,34 @@ if settings.ENABLE_DEV_LOGIN:
     class DevLoginRequest(SQLModel):
         email: str
 
+    class DevUserRead(SQLModel):
+        """Lightweight user shape for the login page — just enough to render cards."""
+        email: str
+        name: str
+        role: str
+
+    @router.get("/dev-users", response_model=list[DevUserRead])
+    async def list_dev_users(
+        session: AsyncSession = Depends(get_session),
+    ):
+        """
+        DEV / DEMO — Return all DEV-provider users with their CURRENT roles.
+
+        The login page calls this on load so it always reflects admin role changes.
+        No auth required — this is a public endpoint (dev mode only).
+        """
+        stmt = (
+            select(User)
+            .where(User.provider == "DEV")
+            .order_by(User.email)  # Alphabetical for consistent ordering
+        )
+        result = await session.exec(stmt)
+        users = result.all()
+        return [
+            DevUserRead(email=u.email, name=u.name, role=u.role.value)
+            for u in users
+        ]
+
     @router.post("/dev-login", response_model=TokenResponse)
     async def dev_login(
         body: DevLoginRequest,

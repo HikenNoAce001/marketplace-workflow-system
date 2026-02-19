@@ -7,12 +7,18 @@
  * Each user card shows name, email, and role badge.
  * Clicking a card logs in as that user via POST /api/auth/dev-login.
  *
+ * DYNAMIC ROLES:
+ * Admins are hardcoded (they don't get role-changed).
+ * Buyers and Solvers are fetched from GET /api/auth/dev-users so that
+ * when an admin changes someone's role, the login page reflects it
+ * immediately without a code change or redeploy.
+ *
  * WHY "use client"?
- * This page uses React hooks (useState, event handlers, useAuth)
+ * This page uses React hooks (useState, useEffect, event handlers, useAuth)
  * which only work in Client Components.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { Role } from "@/types";
@@ -26,80 +32,48 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, ShoppingCart, Wrench } from "lucide-react";
+import { Shield, ShoppingCart, Wrench, Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { api } from "@/lib/api-client";
 
-/**
- * Test users created by the seed script — grouped by role.
- * The icon and color help visually distinguish roles.
- */
-const TEST_USERS = [
-  {
-    email: "admin@test.com",
-    name: "Sarah Chen",
-    role: Role.ADMIN,
-    icon: Shield,
-    badgeClass: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
-  },
-  {
-    email: "admin2@test.com",
-    name: "Marcus Johnson",
-    role: Role.ADMIN,
-    icon: Shield,
-    badgeClass: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
-  },
-  {
-    email: "buyer@test.com",
-    name: "Emily Rodriguez",
-    role: Role.BUYER,
-    icon: ShoppingCart,
-    badgeClass: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
-  },
-  {
-    email: "buyer2@test.com",
-    name: "James Park",
-    role: Role.BUYER,
-    icon: ShoppingCart,
-    badgeClass: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
-  },
-  {
-    email: "buyer3@test.com",
-    name: "Aisha Patel",
-    role: Role.BUYER,
-    icon: ShoppingCart,
-    badgeClass: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
-  },
-  {
-    email: "solver@test.com",
-    name: "Alex Thompson",
-    role: Role.SOLVER,
-    icon: Wrench,
-    badgeClass: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
-  },
-  {
-    email: "solver2@test.com",
-    name: "Priya Sharma",
-    role: Role.SOLVER,
-    icon: Wrench,
-    badgeClass: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
-  },
-  {
-    email: "solver3@test.com",
-    name: "David Kim",
-    role: Role.SOLVER,
-    icon: Wrench,
-    badgeClass: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
-  },
-  {
-    email: "solver4@test.com",
-    name: "Lisa Wang",
-    role: Role.SOLVER,
-    icon: Wrench,
-    badgeClass: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
-  },
+// ============================================================
+// Static admin users — admins don't get role-changed, so hardcoding is fine
+// ============================================================
+
+interface TestUser {
+  email: string;
+  name: string;
+  role: string;
+}
+
+const STATIC_ADMINS: TestUser[] = [
+  { email: "admin@test.com", name: "Sarah Chen", role: Role.ADMIN },
+  { email: "admin2@test.com", name: "Marcus Johnson", role: Role.ADMIN },
 ];
 
-// Group users by role for organized display
+// ============================================================
+// Role styling — maps role string to icon, badge colors
+// ============================================================
+
+const ROLE_CONFIG: Record<string, {
+  icon: typeof Shield;
+  badgeClass: string;
+}> = {
+  ADMIN: {
+    icon: Shield,
+    badgeClass: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+  },
+  BUYER: {
+    icon: ShoppingCart,
+    badgeClass: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  },
+  SOLVER: {
+    icon: Wrench,
+    badgeClass: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+  },
+};
+
+// Group headers with descriptions for each role section
 const ROLE_GROUPS = [
   { role: Role.ADMIN, label: "Sign in as Admin", description: "Manage user roles, view all projects" },
   { role: Role.BUYER, label: "Sign in as Buyer", description: "Create projects, review submissions" },
@@ -110,6 +84,38 @@ export default function LoginPage() {
   // Track which button is loading (to show a spinner on that button only)
   const [loadingEmail, setLoadingEmail] = useState<string | null>(null);
   const { devLogin } = useAuth();
+
+  // Dynamic users fetched from the API (buyers + solvers with current roles)
+  const [dynamicUsers, setDynamicUsers] = useState<TestUser[]>([]);
+  const [fetchingUsers, setFetchingUsers] = useState(true);
+
+  /**
+   * Fetch dev users on mount — gets ALL non-admin users with their
+   * current roles from the database. This means if an admin changes
+   * buyer→solver or solver→buyer, the login page updates automatically.
+   */
+  useEffect(() => {
+    async function fetchDevUsers() {
+      try {
+        const res = await api.get("/auth/dev-users");
+        if (res.ok) {
+          const users: TestUser[] = await res.json();
+          // Filter out admins — we already have those hardcoded
+          const nonAdmins = users.filter((u) => u.role !== Role.ADMIN);
+          setDynamicUsers(nonAdmins);
+        }
+      } catch {
+        // If API is down, fall back gracefully — page still shows admins
+        console.warn("Could not fetch dev users — backend may not be running");
+      } finally {
+        setFetchingUsers(false);
+      }
+    }
+    fetchDevUsers();
+  }, []);
+
+  // Merge: static admins + dynamic buyers/solvers
+  const allUsers = [...STATIC_ADMINS, ...dynamicUsers];
 
   /**
    * Handle dev login — called when user clicks a test user button.
@@ -154,7 +160,11 @@ export default function LoginPage() {
           <CardContent className="space-y-5">
             {/* Render each role group with its users */}
             {ROLE_GROUPS.map((group) => {
-              const users = TEST_USERS.filter((u) => u.role === group.role);
+              const users = allUsers.filter((u) => u.role === group.role);
+
+              // Show loading skeleton for buyer/solver sections while fetching
+              const isLoadingSection = fetchingUsers && group.role !== Role.ADMIN;
+
               return (
                 <div key={group.role} className="space-y-2">
                   {/* Role group header */}
@@ -167,48 +177,62 @@ export default function LoginPage() {
                     </p>
                   </div>
 
-                  {/* User buttons for this role */}
-                  <div className="grid gap-2">
-                    {users.map((testUser, idx) => {
-                      const Icon = testUser.icon;
-                      const isLoading = loadingEmail === testUser.email;
+                  {/* Loading state for dynamic sections */}
+                  {isLoadingSection ? (
+                    <div className="flex items-center justify-center py-3 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span className="text-sm">Loading users...</span>
+                    </div>
+                  ) : users.length === 0 ? (
+                    /* Empty state — no users in this role */
+                    <p className="text-xs text-muted-foreground italic py-2 text-center">
+                      No users with this role
+                    </p>
+                  ) : (
+                    /* User buttons for this role */
+                    <div className="grid gap-2">
+                      {users.map((testUser, idx) => {
+                        const config = ROLE_CONFIG[testUser.role] || ROLE_CONFIG.SOLVER;
+                        const Icon = config.icon;
+                        const isLoading = loadingEmail === testUser.email;
 
-                      return (
-                        <motion.div
-                          key={testUser.email}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: 0.05 * idx }}
-                        >
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start gap-3 h-auto py-2.5"
-                            onClick={() => handleDevLogin(testUser.email)}
-                            disabled={isLoading || loadingEmail !== null}
+                        return (
+                          <motion.div
+                            key={testUser.email}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.3, delay: 0.05 * idx }}
                           >
-                            {isLoading ? (
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                            ) : (
-                              <Icon className="h-4 w-4 text-muted-foreground" />
-                            )}
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start gap-3 h-auto py-2.5"
+                              onClick={() => handleDevLogin(testUser.email)}
+                              disabled={isLoading || loadingEmail !== null}
+                            >
+                              {isLoading ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                              ) : (
+                                <Icon className="h-4 w-4 text-muted-foreground" />
+                              )}
 
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm">{testUser.name}</span>
-                              <Badge
-                                variant="outline"
-                                className={`text-xs ${testUser.badgeClass}`}
-                              >
-                                {testUser.role}
-                              </Badge>
-                            </div>
-                            <span className="ml-auto text-xs text-muted-foreground">
-                              {testUser.email}
-                            </span>
-                          </Button>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm">{testUser.name}</span>
+                                <Badge
+                                  variant="outline"
+                                  className={`text-xs ${config.badgeClass}`}
+                                >
+                                  {testUser.role}
+                                </Badge>
+                              </div>
+                              <span className="ml-auto text-xs text-muted-foreground">
+                                {testUser.email}
+                              </span>
+                            </Button>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
