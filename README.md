@@ -1,8 +1,78 @@
-# Marketplace Project Workflow System
+<div align="center">
 
-A role-based project marketplace where Buyers post projects, Solvers bid and deliver work as ZIP files, and Admins manage the platform. Built with FastAPI + Next.js 16.
+# Marketplace Workflow System
 
-**Live Demo:** [Railway deployment URL](https://marketplace-workflow-system.up.railway.app/)
+**A full-stack project marketplace with role-based access, real-time bidding, and ZIP deliverable management.**
+
+Built with **FastAPI** + **Next.js 16** + **PostgreSQL** + **MinIO**
+
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.129-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Next.js-16.1-000000?logo=next.js&logoColor=white)](https://nextjs.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://postgresql.org)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docker.com)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?logo=typescript&logoColor=white)](https://typescriptlang.org)
+
+</div>
+
+---
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Client (Browser)                         │
+│                     Next.js 16 + React 19                       │
+│              TanStack Query ← Zustand (auth state)              │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ fetch + JWT Bearer
+                           ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                     FastAPI Backend (async)                       │
+│                                                                  │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │
+│  │   Auth   │  │ Projects │  │ Requests │  │  Submissions     │ │
+│  │  (JWT)   │  │  (CRUD)  │  │  (Bids)  │  │  (ZIP + Review)  │ │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └───────┬──────────┘ │
+│       │              │              │                │            │
+│       ▼              ▼              ▼                ▼            │
+│  ┌─────────────────────────────┐  ┌──────────────────────────┐   │
+│  │     SQLModel + asyncpg      │  │    MinIO (S3-compat)     │   │
+│  │       (PostgreSQL 16)       │  │   presigned URL upload   │   │
+│  └─────────────────────────────┘  └──────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Request Flow
+
+```
+Browser ──► Next.js App ──► fetch wrapper (auto token refresh)
+                                    │
+                                    ▼
+                            FastAPI endpoint
+                                    │
+                            ┌───────┴───────┐
+                            ▼               ▼
+                     Role guard        Service layer
+                   (dependency)      (business logic)
+                                          │
+                                    ┌─────┴─────┐
+                                    ▼           ▼
+                               PostgreSQL    MinIO
+                              (via asyncpg) (presigned URLs)
+```
+
+### Auth Flow
+
+```
+Login ──► POST /auth/dev-login ──► JWT access token (15min, in memory)
+                                 + refresh token (7d, httpOnly cookie)
+
+API call ──► Bearer token in header ──► 401? ──► auto-refresh ──► retry
+                                                      │
+                                               refresh fails? ──► logout
+```
 
 ---
 
@@ -38,17 +108,23 @@ Buyer reviews each submission (accept/reject)
 All tasks accepted ──► Project auto-completes (COMPLETED)
 ```
 
-### State Transitions
+### State Machines
 
-**Project:** `OPEN → ASSIGNED → COMPLETED`
+```
+Project:     OPEN ──────► ASSIGNED ──────► COMPLETED
+                (bid accepted)     (all tasks done)
 
-**Task:** `IN_PROGRESS → SUBMITTED → COMPLETED`
+Task:        IN_PROGRESS ──► SUBMITTED ──► COMPLETED
+                  ▲         (ZIP uploaded)  (accepted)
+                  │               │
+                  │               ▼
+                  └──── REVISION_REQUESTED
+                         (rejected — rework cycle)
 
-- Rejection triggers: `SUBMITTED → REVISION_REQUESTED → SUBMITTED` (rework cycle)
+Request:     PENDING ──► ACCEPTED | REJECTED
 
-**Request (Bid):** `PENDING → ACCEPTED | REJECTED`
-
-**Submission:** `PENDING_REVIEW → ACCEPTED | REJECTED`
+Submission:  PENDING_REVIEW ──► ACCEPTED | REJECTED
+```
 
 ### Cascade Rules (single DB transaction each)
 
@@ -60,40 +136,25 @@ All tasks accepted ──► Project auto-completes (COMPLETED)
 
 ## Tech Stack
 
-### Backend
-
-- **Python 3.12** / **FastAPI 0.129** — async REST API
-- **SQLModel** (SQLAlchemy 2.0 + Pydantic v2) — ORM + validation in one class
-- **PostgreSQL 16** via asyncpg — async driver
-- **Alembic** — database migrations auto-generated from models
-- **MinIO** — S3-compatible object storage for ZIP uploads
-- **PyJWT** — JWT auth (15min access token, 7-day refresh in httpOnly cookie)
-
-### Frontend
-
-- **Next.js 16.1** (App Router, Turbopack)
-- **React 19** / **TypeScript** strict mode
-- **Tailwind CSS** + **shadcn/ui** — component library
-- **TanStack Query v5** — server state management
-- **Zustand** — client state (auth token in memory only)
-- **Framer Motion** — animations and transitions
-
-### Infrastructure
-
-- **Docker Compose** — PostgreSQL, MinIO, backend, frontend
-- **Railway** — production deployment
+| Layer          | Technology                                          |
+| -------------- | --------------------------------------------------- |
+| **API**        | Python 3.12, FastAPI 0.129, async/await throughout  |
+| **ORM**        | SQLModel (SQLAlchemy 2.0 + Pydantic v2 in one)      |
+| **Database**   | PostgreSQL 16 via asyncpg                           |
+| **Migrations** | Alembic (auto-generated from models)                |
+| **Storage**    | MinIO (S3-compatible, presigned URLs)               |
+| **Auth**       | PyJWT — 15min access token, 7-day refresh cookie    |
+| **Frontend**   | Next.js 16.1 (App Router, Turbopack)                |
+| **UI**         | React 19, TypeScript strict, Tailwind + shadcn/ui   |
+| **Data**       | TanStack Query v5 (server state), Zustand (auth)    |
+| **Animation**  | Framer Motion                                       |
+| **Infra**      | Docker Compose, Railway                             |
 
 ---
 
-## Setup Instructions
+## Quick Start
 
-### Prerequisites
-
-- Docker & Docker Compose
-- Node.js 20.9+ (for local frontend dev)
-- Python 3.12+ (optional, for running outside Docker)
-
-### Quick Start (one command)
+### One Command Setup
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/project-workflow-system.git
@@ -101,36 +162,38 @@ cd project-workflow-system
 ./setup.sh
 ```
 
-This single script handles everything: environment setup, Docker build, database migrations, test user seeding, frontend dependency install, and starts the dev server.
+The script checks prerequisites, builds Docker containers, runs migrations, seeds test users, installs frontend dependencies, and starts the dev server.
 
-### Manual Setup (step by step)
+### Manual Setup
 
 ```bash
 cp .env.example .env
-docker compose up --build -d    # PostgreSQL, MinIO, Backend
+docker compose up --build -d
 cd frontend && npm install && npm run dev
 ```
 
 The backend container automatically runs migrations and seeds test users on startup.
 
-The app will be running at:
+### Services
 
-- **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:8000
-- **Swagger UI:** http://localhost:8000/docs
-- **MinIO Console:** http://localhost:9001
+| Service          | URL                        |
+| ---------------- | -------------------------- |
+| **Frontend**     | http://localhost:3000       |
+| **Backend API**  | http://localhost:8000/api   |
+| **Swagger UI**   | http://localhost:8000/docs  |
+| **MinIO Console**| http://localhost:9001       |
 
 ### Test Users
 
-| Email           | Role   | Password                |
-| --------------- | ------ | ----------------------- |
-| admin@test.com  | ADMIN  | dev-login (no password) |
-| buyer@test.com  | BUYER  | dev-login               |
-| solver@test.com | SOLVER | dev-login               |
+| Email           | Role   | Login Method |
+| --------------- | ------ | ------------ |
+| admin@test.com  | ADMIN  | dev-login    |
+| buyer@test.com  | BUYER  | dev-login    |
+| solver@test.com | SOLVER | dev-login    |
 
-Login via `POST /api/auth/dev-login` with `{"email": "buyer@test.com"}` or use the frontend login page.
+Select any user on the login page to sign in instantly.
 
-### Useful Commands
+### Make Commands
 
 ```bash
 make up          # Start Docker services
@@ -141,12 +204,11 @@ make seed        # Seed test users
 make test-flow   # Run automated E2E workflow test
 make logs        # Tail backend logs
 make front       # Start Next.js dev server
-make front-build # Production build of frontend
 ```
 
 ---
 
-## API Route Summary
+## API Routes
 
 ### Auth
 
@@ -206,29 +268,29 @@ make front-build # Production build of frontend
 
 ## Key Architectural Decisions
 
-### 1. SQLModel instead of Prisma
+### 1. SQLModel over Prisma
 
-Prisma Client Python is unmaintained. SQLModel combines SQLAlchemy's ORM with Pydantic validation in a single class definition — one model serves as both the DB table and the API schema base.
+Prisma Client Python is unmaintained. SQLModel combines SQLAlchemy's ORM with Pydantic validation in a single class — one model serves as both the database table and the API schema base. Migrations are handled by Alembic with autogenerate.
 
-### 2. Custom fetch wrapper instead of Axios
+### 2. Custom fetch wrapper over Axios
 
-Native `fetch` integrates with Next.js 16's caching and revalidation. The wrapper handles token refresh automatically on 401 responses — about 40 lines of code vs pulling in a full HTTP library.
+Native `fetch` integrates with Next.js 16's caching and revalidation. The wrapper handles automatic token refresh on 401 responses in ~40 lines — no need for a full HTTP library dependency.
 
 ### 3. Access token in memory only
 
-The access token lives in Zustand (JS memory) and never touches localStorage. Refresh token is in an httpOnly cookie. This prevents XSS from stealing tokens — even if an attacker injects scripts, they can't read the access token from memory of a different closure.
+The access token lives in Zustand (JS memory) and never touches localStorage or sessionStorage. The refresh token is stored in an httpOnly cookie. This prevents XSS from stealing tokens.
 
-### 4. Cascade operations in single transactions
+### 4. Atomic cascade operations
 
-When a buyer accepts a bid, three things happen atomically: the bid is accepted, all other bids are rejected, and the project is assigned. If any step fails, everything rolls back. Same pattern for submission acceptance (task complete → maybe project complete).
+When a buyer accepts a bid, three things happen in a single database transaction: the bid is accepted, all other bids are rejected, and the project status changes to ASSIGNED. If any step fails, everything rolls back. Same pattern for submission acceptance.
 
-### 5. MinIO for file storage
+### 5. Presigned URLs for file downloads
 
-Backend containers are stateless — files can't live on the filesystem. MinIO provides S3-compatible storage with presigned URLs, so the backend never proxies file downloads. The frontend downloads directly from MinIO.
+MinIO provides S3-compatible storage with presigned URLs. The backend never proxies file downloads — it generates a time-limited URL and the browser downloads directly from MinIO. This keeps the backend stateless and scalable.
 
-### 6. ZIP validation with 4 checks
+### 6. Four-layer ZIP validation
 
-Extension, MIME type, `zipfile.is_zipfile()` (handles all ZIP variants including empty/spanned archives), and size limit. Magic byte check alone would miss valid edge cases.
+Extension check, MIME type check, `zipfile.is_zipfile()` (handles all ZIP variants including empty and spanned archives), and file size limit. Magic byte detection alone would miss valid edge cases.
 
 ---
 
