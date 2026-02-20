@@ -154,6 +154,12 @@ Submission:  PENDING_REVIEW ──► ACCEPTED | REJECTED
 
 ## Quick Start
 
+### Prerequisites
+
+- **Docker Desktop** — [docker.com](https://www.docker.com/products/docker-desktop/) (must be running)
+- **Git** — [git-scm.com](https://git-scm.com/)
+- **Node.js 20.9+** — [nodejs.org](https://nodejs.org/) (only needed if running the frontend dev server locally)
+
 ### One Command Setup
 
 ```bash
@@ -162,17 +168,16 @@ cd project-workflow-system
 ./setup.sh
 ```
 
-The script checks prerequisites, builds Docker containers, runs migrations, seeds test users, installs frontend dependencies, and starts the dev server.
+The script handles everything: copies `.env`, builds Docker containers, waits for backend health check, runs migrations, seeds test users, installs frontend dependencies, and starts the dev server.
 
 ### Manual Setup
 
 ```bash
 cp .env.example .env
 docker compose up --build -d
-cd frontend && npm install && npm run dev
 ```
 
-The backend container automatically runs migrations and seeds test users on startup.
+All four services (PostgreSQL, MinIO, Backend, Frontend) start in Docker. The backend container automatically runs migrations and seeds test users on startup.
 
 ### Services
 
@@ -183,13 +188,19 @@ The backend container automatically runs migrations and seeds test users on star
 | **Swagger UI**   | http://localhost:8000/docs  |
 | **MinIO Console**| http://localhost:9001       |
 
-### Test Users
+### Test Users (9 seeded)
 
-| Email           | Role   | Login Method |
-| --------------- | ------ | ------------ |
-| admin@test.com  | ADMIN  | dev-login    |
-| buyer@test.com  | BUYER  | dev-login    |
-| solver@test.com | SOLVER | dev-login    |
+| Email            | Name             | Role   |
+| ---------------- | ---------------- | ------ |
+| admin@test.com   | Sarah Chen       | ADMIN  |
+| admin2@test.com  | Marcus Johnson   | ADMIN  |
+| buyer@test.com   | Emily Rodriguez  | BUYER  |
+| buyer2@test.com  | James Park       | BUYER  |
+| buyer3@test.com  | Aisha Patel      | BUYER  |
+| solver@test.com  | Alex Thompson    | SOLVER |
+| solver2@test.com | Priya Sharma     | SOLVER |
+| solver3@test.com | David Kim        | SOLVER |
+| solver4@test.com | Lisa Wang        | SOLVER |
 
 Select any user on the login page to sign in instantly.
 
@@ -212,11 +223,12 @@ make front       # Start Next.js dev server
 
 ### Auth
 
-| Method | Route                 | Description             | Access        |
-| ------ | --------------------- | ----------------------- | ------------- |
-| POST   | `/api/auth/dev-login` | Get token for test user | Public        |
+| Method | Route                 | Description             | Access   |
+| ------ | --------------------- | ----------------------- | -------- |
+| GET    | `/api/auth/dev-users` | List available test users | Public   |
+| POST   | `/api/auth/dev-login` | Get token for test user | Public   |
 | GET    | `/api/auth/me`        | Get current user        | Authenticated |
-| POST   | `/api/auth/refresh`   | Refresh access token    | Cookie        |
+| POST   | `/api/auth/refresh`   | Refresh access token    | Cookie   |
 | POST   | `/api/auth/logout`    | Clear refresh cookie    | Authenticated |
 
 ### Users
@@ -224,6 +236,7 @@ make front       # Start Next.js dev server
 | Method | Route                   | Description        | Access |
 | ------ | ----------------------- | ------------------ | ------ |
 | GET    | `/api/users`            | List all users     | Admin  |
+| GET    | `/api/users/{id}`       | Get user by ID     | Admin  |
 | PATCH  | `/api/users/{id}/role`  | Change user role   | Admin  |
 | GET    | `/api/users/me/profile` | Get solver profile | Solver |
 | PATCH  | `/api/users/me/profile` | Update bio/skills  | Solver |
@@ -235,17 +248,17 @@ make front       # Start Next.js dev server
 | POST   | `/api/projects`          | Create project                | Buyer         |
 | GET    | `/api/projects`          | List projects (role-filtered) | Authenticated |
 | GET    | `/api/projects/{id}`     | Get project details           | Authenticated |
-| GET    | `/api/projects/assigned` | Solver's assigned projects    | Solver        |
+| PATCH  | `/api/projects/{id}`     | Update project                | Buyer (owner) |
 
 ### Requests (Bids)
 
-| Method | Route                         | Description           | Access      |
-| ------ | ----------------------------- | --------------------- | ----------- |
-| POST   | `/api/projects/{id}/requests` | Submit bid            | Solver      |
-| GET    | `/api/projects/{id}/requests` | List bids for project | Buyer/Admin |
-| GET    | `/api/requests/me`            | Solver's own bids     | Solver      |
-| PATCH  | `/api/requests/{id}/accept`   | Accept bid (cascade)  | Buyer       |
-| PATCH  | `/api/requests/{id}/reject`   | Reject bid            | Buyer       |
+| Method | Route                         | Description           | Access |
+| ------ | ----------------------------- | --------------------- | ------ |
+| POST   | `/api/projects/{id}/requests` | Submit bid            | Solver |
+| GET    | `/api/projects/{id}/requests` | List bids for project | Buyer  |
+| GET    | `/api/requests/me`            | Solver's own bids     | Solver |
+| PATCH  | `/api/requests/{id}/accept`   | Accept bid (cascade)  | Buyer  |
+| PATCH  | `/api/requests/{id}/reject`   | Reject bid            | Buyer  |
 
 ### Tasks
 
@@ -253,6 +266,8 @@ make front       # Start Next.js dev server
 | ------ | -------------------------- | ------------------ | --------------- |
 | POST   | `/api/projects/{id}/tasks` | Create task        | Assigned Solver |
 | GET    | `/api/projects/{id}/tasks` | List project tasks | Buyer/Solver    |
+| GET    | `/api/tasks/{id}`          | Get single task    | Buyer/Solver    |
+| PATCH  | `/api/tasks/{id}`          | Update task        | Assigned Solver |
 
 ### Submissions
 
