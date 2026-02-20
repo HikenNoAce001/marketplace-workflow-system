@@ -37,6 +37,12 @@ export function useAuth() {
     async (email: string) => {
       setLoading(true);
       try {
+        // Logout first to revoke old refresh token cookie —
+        // prevents stale token from a previous user session
+        // causing role mismatches on auto-refresh
+        await api.post("/auth/logout").catch(() => {});
+        logoutStore(); // clear in-memory token so dev-login goes clean
+
         const res = await api.post("/auth/dev-login", { email });
 
         if (!res.ok) {
@@ -56,7 +62,7 @@ export function useAuth() {
         setLoading(false);
       }
     },
-    [setToken, setLoading, fetchUser, queryClient]
+    [setToken, setLoading, logoutStore, fetchUser, queryClient]
   );
 
   const checkSession = useCallback(async (): Promise<boolean> => {
