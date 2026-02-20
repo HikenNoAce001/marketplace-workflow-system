@@ -154,7 +154,7 @@ export default function BuyerProjectDetailPage({
           Back to Projects
         </Button>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold">{project.title}</h1>
           <AnimatedBadge
             status={project.status}
@@ -320,28 +320,26 @@ function RequestsTab({
         <AnimatedListItem key={request.id}>
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">
-                      {request.solver_name}
-                    </span>
-                    <AnimatedBadge
-                      status={request.status}
-                      className={REQUEST_STATUS_CLASS[request.status]}
-                    />
-                  </div>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {request.cover_letter}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Submitted {formatDate(request.created_at)}
-                  </p>
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {request.solver_name}
+                  </span>
+                  <AnimatedBadge
+                    status={request.status}
+                    className={REQUEST_STATUS_CLASS[request.status]}
+                  />
                 </div>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {request.cover_letter}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Submitted {formatDate(request.created_at)}
+                </p>
 
                 {request.status === RequestState.PENDING && projectStatus === ProjectState.OPEN && (
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="flex flex-wrap gap-2">
                     <motion.div whileTap={{ scale: 0.95 }}>
                       <Button
                         size="sm"
@@ -440,34 +438,33 @@ function TaskCard({ task, projectId }: { task: Task; projectId: string }) {
       <CardContent className="pt-6">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center justify-between w-full text-left"
+          className="flex items-start gap-3 w-full text-left"
         >
-          <div className="flex items-center gap-3">
+          <div className="mt-0.5 shrink-0">
             {expanded ? (
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             ) : (
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             )}
-
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{task.title}</span>
-                <AnimatedBadge
-                  status={task.status}
-                  className={TASK_STATUS_CLASS[task.status]}
-                />
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                {task.description}
-              </p>
-            </div>
           </div>
 
-          {task.deadline && (
-            <span className="text-xs text-muted-foreground flex-shrink-0 ml-4">
-              Due: {formatDate(task.deadline)}
-            </span>
-          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-medium">{task.title}</span>
+              <AnimatedBadge
+                status={task.status}
+                className={TASK_STATUS_CLASS[task.status]}
+              />
+              {task.deadline && (
+                <span className="text-xs text-muted-foreground">
+                  Due: {formatDate(task.deadline)}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+              {task.description}
+            </p>
+          </div>
         </button>
 
         <AnimatePresence>
@@ -597,44 +594,42 @@ function SubmissionsPanel({
             key={submission.id}
             className="rounded-lg border p-4 bg-background"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">{submission.file_name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    ({formatFileSize(submission.file_size)})
-                  </span>
-                  <AnimatedBadge
-                    status={submission.status}
-                    className={SUBMISSION_STATUS_CLASS[submission.status]}
-                  />
-                  {index === 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      Latest
-                    </Badge>
-                  )}
-                </div>
-
-                {submission.notes && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    <span className="font-medium">Notes:</span> {submission.notes}
-                  </p>
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium truncate">{submission.file_name}</span>
+                <span className="text-xs text-muted-foreground">
+                  ({formatFileSize(submission.file_size)})
+                </span>
+                <AnimatedBadge
+                  status={submission.status}
+                  className={SUBMISSION_STATUS_CLASS[submission.status]}
+                />
+                {index === 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    Latest
+                  </Badge>
                 )}
-
-                {submission.reviewer_notes && (
-                  <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
-                    <span className="font-medium">Feedback:</span> {submission.reviewer_notes}
-                  </p>
-                )}
-
-                <p className="text-xs text-muted-foreground mt-1">
-                  Submitted {formatDate(submission.submitted_at)}
-                  {submission.reviewed_at && ` · Reviewed ${formatDate(submission.reviewed_at)}`}
-                </p>
               </div>
 
-              <div className="flex gap-2 flex-shrink-0">
+              {submission.notes && (
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium">Notes:</span> {submission.notes}
+                </p>
+              )}
+
+              {submission.reviewer_notes && (
+                <p className="text-sm text-orange-600 dark:text-orange-400">
+                  <span className="font-medium">Feedback:</span> {submission.reviewer_notes}
+                </p>
+              )}
+
+              <p className="text-xs text-muted-foreground">
+                Submitted {formatDate(submission.submitted_at)}
+                {submission.reviewed_at && ` · Reviewed ${formatDate(submission.reviewed_at)}`}
+              </p>
+
+              <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
                   variant="outline"

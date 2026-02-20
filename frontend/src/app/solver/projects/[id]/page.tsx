@@ -40,7 +40,6 @@ import {
   AlertCircle,
   FileText,
   CheckCircle,
-  Clock,
   Upload,
   Plus,
   ChevronDown,
@@ -51,7 +50,7 @@ import {
   Send,
   Pencil,
 } from "lucide-react";
-import { ProjectState, TaskState, SubmissionState } from "@/types";
+import { ProjectState, TaskState } from "@/types";
 import type { ProjectStatus, TaskStatus, SubmissionStatus, Task } from "@/types";
 
 const PROJECT_STATUS_CLASS: Record<ProjectStatus, string> = {
@@ -151,7 +150,7 @@ export default function SolverProjectDetailPage({
           Back to Projects
         </Button>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold">{project.title}</h1>
           <AnimatedBadge
             status={project.status}
@@ -512,50 +511,52 @@ function SolverTaskCard({
     <>
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start gap-3">
             <button
               onClick={() => setExpanded(!expanded)}
-              className="flex items-center gap-3 flex-1 text-left"
+              className="mt-0.5 shrink-0"
             >
               {expanded ? (
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               ) : (
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               )}
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{task.title}</span>
-                  <AnimatedBadge
-                    status={task.status}
-                    className={TASK_STATUS_CLASS[task.status]}
-                  />
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {task.description}
-                </p>
-              </div>
             </button>
 
-            <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-              {task.deadline && (
-                <span className="text-xs text-muted-foreground">
-                  Due: {formatDate(task.deadline)}
-                </span>
-              )}
-              {canEdit && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 w-8 p-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowEditDialog(true);
-                  }}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="flex-1 min-w-0 text-left"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">{task.title}</span>
+                <AnimatedBadge
+                  status={task.status}
+                  className={TASK_STATUS_CLASS[task.status]}
+                />
+                {task.deadline && (
+                  <span className="text-xs text-muted-foreground">
+                    Due: {formatDate(task.deadline)}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                {task.description}
+              </p>
+            </button>
+
+            {canEdit && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 p-0 shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowEditDialog(true);
+                }}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </div>
 
           <AnimatePresence>
@@ -863,52 +864,38 @@ function SolverSubmissionsPanel({
           key={submission.id}
           className="rounded-lg border p-4 bg-background"
         >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">{submission.file_name}</span>
-                <span className="text-xs text-muted-foreground">
-                  ({formatFileSize(submission.file_size)})
-                </span>
-                <AnimatedBadge
-                  status={submission.status}
-                  className={SUBMISSION_STATUS_CLASS[submission.status]}
-                />
-                {index === 0 && (
-                  <Badge variant="secondary" className="text-xs">Latest</Badge>
-                )}
-              </div>
-
-              {submission.notes && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  <span className="font-medium">Your notes:</span> {submission.notes}
-                </p>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium truncate">{submission.file_name}</span>
+              <span className="text-xs text-muted-foreground">
+                ({formatFileSize(submission.file_size)})
+              </span>
+              <AnimatedBadge
+                status={submission.status}
+                className={SUBMISSION_STATUS_CLASS[submission.status]}
+              />
+              {index === 0 && (
+                <Badge variant="secondary" className="text-xs">Latest</Badge>
               )}
+            </div>
 
-              {submission.reviewer_notes && (
-                <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
-                  <span className="font-medium">Buyer feedback:</span> {submission.reviewer_notes}
-                </p>
-              )}
-
-              <p className="text-xs text-muted-foreground mt-1">
-                Submitted {formatDate(submission.submitted_at)}
-                {submission.reviewed_at && ` · Reviewed ${formatDate(submission.reviewed_at)}`}
+            {submission.notes && (
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium">Your notes:</span> {submission.notes}
               </p>
-            </div>
+            )}
 
-            <div className="flex-shrink-0">
-              {submission.status === SubmissionState.PENDING_REVIEW && (
-                <Clock className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
-              )}
-              {submission.status === SubmissionState.ACCEPTED && (
-                <CheckCircle className="h-5 w-5 text-green-500 dark:text-green-400" />
-              )}
-              {submission.status === SubmissionState.REJECTED && (
-                <AlertCircle className="h-5 w-5 text-red-500 dark:text-red-400" />
-              )}
-            </div>
+            {submission.reviewer_notes && (
+              <p className="text-sm text-orange-600 dark:text-orange-400">
+                <span className="font-medium">Buyer feedback:</span> {submission.reviewer_notes}
+              </p>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              Submitted {formatDate(submission.submitted_at)}
+              {submission.reviewed_at && ` · Reviewed ${formatDate(submission.reviewed_at)}`}
+            </p>
           </div>
         </div>
       ))}

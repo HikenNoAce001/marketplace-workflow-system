@@ -1,7 +1,9 @@
 "use client";
 
 // Shared layout for all authenticated pages — sidebar + navbar + content area
+// Responsive: sidebar collapses to hamburger menu on mobile (< md breakpoint)
 
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,6 +19,8 @@ import {
   Search,
   FileText,
   UserCircle,
+  Menu,
+  X,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { UserRole } from "@/types";
@@ -58,6 +62,7 @@ const ROLE_SIDEBAR_ACCENT: Record<UserRole, string> = {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (!user) return null;
 
@@ -65,48 +70,55 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navItems = NAV_ITEMS[role] || [];
   const RoleIcon = ROLE_ICON[role];
 
+  // Close mobile menu when navigating
+  const handleNavClick = () => setMobileMenuOpen(false);
+
+  // Shared nav link renderer — used by both desktop sidebar and mobile menu
+  const renderNavLinks = () =>
+    navItems.map((item) => {
+      const Icon = item.icon;
+      const isActive = pathname.startsWith(item.href);
+
+      return (
+        <Link key={item.href} href={item.href} onClick={handleNavClick}>
+          <motion.div
+            className={`
+              relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium
+              transition-colors duration-150
+              ${isActive
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+              }
+            `}
+            whileHover={{ x: 4 }}
+            transition={{ duration: 0.15 }}
+          >
+            {/* Active background pill — slides between links */}
+            {isActive && (
+              <motion.div
+                layoutId="activeNavPill"
+                className="absolute inset-0 rounded-lg bg-primary/10"
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              />
+            )}
+            <Icon className="relative h-4 w-4" />
+            <span className="relative">{item.label}</span>
+          </motion.div>
+        </Link>
+      );
+    });
+
   return (
     <div className="flex h-screen bg-background" data-role={role}>
-      {/* Sidebar */}
-      <aside className={`flex w-64 flex-col border-r border-l-4 bg-card ${ROLE_SIDEBAR_ACCENT[role]}`}>
+      {/* Desktop sidebar — hidden on mobile */}
+      <aside className={`hidden md:flex w-64 flex-col border-r border-l-4 bg-card ${ROLE_SIDEBAR_ACCENT[role]}`}>
         <div className="flex h-16 items-center gap-2 px-6 border-b">
           <FolderKanban className="h-6 w-6 text-primary" />
           <span className="font-semibold text-lg">Marketplace</span>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname.startsWith(item.href);
-
-            return (
-              <Link key={item.href} href={item.href}>
-                <motion.div
-                  className={`
-                    relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium
-                    transition-colors duration-150
-                    ${isActive
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                    }
-                  `}
-                  whileHover={{ x: 4 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  {/* Active background pill — slides between links */}
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeNavPill"
-                      className="absolute inset-0 rounded-lg bg-primary/10"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                  <Icon className="relative h-4 w-4" />
-                  <span className="relative">{item.label}</span>
-                </motion.div>
-              </Link>
-            );
-          })}
+          {renderNavLinks()}
         </nav>
 
         <div className="border-t p-4">
@@ -122,20 +134,87 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
+      {/* Mobile overlay menu */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              className="fixed inset-0 z-40 bg-black/50 md:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            {/* Slide-in panel */}
+            <motion.aside
+              className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col border-r border-l-4 bg-card md:hidden ${ROLE_SIDEBAR_ACCENT[role]}`}
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            >
+              <div className="flex h-16 items-center justify-between px-6 border-b">
+                <div className="flex items-center gap-2">
+                  <FolderKanban className="h-6 w-6 text-primary" />
+                  <span className="font-semibold text-lg">Marketplace</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <nav className="flex-1 px-3 py-4 space-y-1">
+                {renderNavLinks()}
+              </nav>
+
+              <div className="border-t p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-sm">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{user.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                </div>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Main area */}
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="flex h-16 items-center justify-between border-b px-6 bg-card">
-          <motion.div
-            className="flex items-center gap-2"
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <RoleIcon className="h-5 w-5 text-muted-foreground" />
-            <Badge variant="outline" className={ROLE_BADGE_CLASS[role]}>
-              {role}
-            </Badge>
-          </motion.div>
+        <header className="flex h-16 items-center justify-between border-b px-4 md:px-6 bg-card">
+          <div className="flex items-center gap-2">
+            {/* Mobile hamburger button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 p-0 md:hidden"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+
+            <motion.div
+              className="flex items-center gap-2"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <RoleIcon className="h-5 w-5 text-muted-foreground hidden sm:block" />
+              <Badge variant="outline" className={ROLE_BADGE_CLASS[role]}>
+                {role}
+              </Badge>
+            </motion.div>
+          </div>
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -147,14 +226,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="gap-2 text-muted-foreground hover:text-foreground"
               >
                 <LogOut className="h-4 w-4" />
-                Sign Out
+                <span className="hidden sm:inline">Sign Out</span>
               </Button>
             </motion.div>
           </div>
         </header>
 
         {/* Page content with route transition */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={pathname}

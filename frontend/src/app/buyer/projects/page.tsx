@@ -58,7 +58,7 @@ export default function BuyerProjectsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <ShoppingCart className="h-6 w-6" />
@@ -140,7 +140,7 @@ export default function BuyerProjectsPage() {
 
       {data && data.data.length > 0 && (
         <>
-          <div className="rounded-lg border">
+          <div className="rounded-lg border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -189,10 +189,9 @@ export default function BuyerProjectsPage() {
           </div>
 
           {data.meta.total_pages > 1 && (
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <p className="text-sm text-muted-foreground">
-                Showing page {data.meta.page} of {data.meta.total_pages} (
-                {data.meta.total} projects)
+                Page {data.meta.page} of {data.meta.total_pages} ({data.meta.total} projects)
               </p>
               <div className="flex gap-2">
                 <Button
