@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth-store";
 import { api } from "@/lib/api-client";
 import { Role } from "@/types";
@@ -9,6 +10,7 @@ import type { User, AuthTokenResponse } from "@/types";
 
 export function useAuth() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const user = useAuthStore((state) => state.user);
   const isLoading = useAuthStore((state) => state.isLoading);
@@ -43,6 +45,7 @@ export function useAuth() {
         }
 
         const data = (await res.json()) as AuthTokenResponse;
+        queryClient.clear(); // clear any stale data from previous user
         setToken(data.access_token);
 
         const userData = await fetchUser();
@@ -53,7 +56,7 @@ export function useAuth() {
         setLoading(false);
       }
     },
-    [setToken, setLoading, fetchUser]
+    [setToken, setLoading, fetchUser, queryClient]
   );
 
   const checkSession = useCallback(async (): Promise<boolean> => {
@@ -91,9 +94,10 @@ export function useAuth() {
       // Clear local state even if the API call fails
     }
 
+    queryClient.clear(); // wipe previous user's cached data
     logoutStore();
     router.push("/auth/login");
-  }, [logoutStore, router]);
+  }, [logoutStore, router, queryClient]);
 
   const redirectByRole = (role: string) => {
     switch (role) {
