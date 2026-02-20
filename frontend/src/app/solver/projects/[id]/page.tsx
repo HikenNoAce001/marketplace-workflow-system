@@ -774,6 +774,7 @@ function SolverSubmissionsPanel({
                   accept=".zip,application/zip"
                   ref={fileInputRef}
                   required
+                  className="file:mr-3 file:rounded-md file:border file:border-input file:bg-muted file:px-3 file:py-1 file:text-sm file:font-medium file:text-foreground hover:file:bg-accent cursor-pointer"
                 />
                 <p className="text-xs text-muted-foreground">
                   Must be a valid .zip file, max 50MB.
