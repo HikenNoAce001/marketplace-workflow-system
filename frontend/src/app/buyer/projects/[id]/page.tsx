@@ -188,7 +188,7 @@ export default function BuyerProjectDetailPage({
   );
 }
 
-function OverviewTab({ project }: { project: { title: string; description: string; status: ProjectStatus; budget: number | null; deadline: string | null; assigned_solver_id: string | null; created_at: string } }) {
+function OverviewTab({ project }: { project: { title: string; description: string; status: ProjectStatus; budget: number | null; deadline: string | null; assigned_solver_id: string | null; assigned_solver_name: string | null; created_at: string } }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <Card className="md:col-span-2">
@@ -228,7 +228,7 @@ function OverviewTab({ project }: { project: { title: string; description: strin
           <div>
             <p className="text-sm text-muted-foreground">Assigned Solver</p>
             <p className="font-semibold">
-              {project.assigned_solver_id ? "Assigned" : "None yet"}
+              {project.assigned_solver_name || "None yet"}
             </p>
           </div>
         </CardContent>
@@ -325,7 +325,7 @@ function RequestsTab({
                   <div className="flex items-center gap-2 mb-2">
                     <User className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">
-                      Solver: {request.solver_id.slice(0, 8)}...
+                      {request.solver_name}
                     </span>
                     <AnimatedBadge
                       status={request.status}

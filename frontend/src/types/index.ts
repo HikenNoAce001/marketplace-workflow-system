@@ -75,6 +75,7 @@ export interface ProjectRequest {
   created_at: string;
   updated_at: string;
   solver_name: string;
+  project_title: string;
 }
 
 export interface Task {

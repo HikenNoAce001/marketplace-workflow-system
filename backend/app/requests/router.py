@@ -7,6 +7,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.database import get_session
 from app.dependencies import get_current_user, require_role
+from app.models.project import Project
 from app.models.user import User, UserRole
 from app.requests import service
 from app.requests.schemas import RequestCreate, RequestListResponse, RequestRead
@@ -15,15 +16,17 @@ router = APIRouter(tags=["requests"])
 
 
 async def _to_read(r, session: AsyncSession) -> RequestRead:
-    # Convert ProjectRequest model to response schema with solver name.
+    # Convert ProjectRequest model to response schema with solver name and project title.
     solver = await session.get(User, r.solver_id)
     solver_name = solver.name if solver else "Unknown"
+    project = await session.get(Project, r.project_id)
+    project_title = project.title if project else "Unknown"
 
     return RequestRead(
         id=r.id, project_id=r.project_id, solver_id=r.solver_id,
         cover_letter=r.cover_letter, status=r.status.value,
         created_at=r.created_at, updated_at=r.updated_at,
-        solver_name=solver_name,
+        solver_name=solver_name, project_title=project_title,
     )
 
 

@@ -17,6 +17,7 @@ class RequestRead(SQLModel):
     created_at: datetime
     updated_at: datetime
     solver_name: str = ""
+    project_title: str = ""
 
 
 class RequestListResponse(SQLModel):
